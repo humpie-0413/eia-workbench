@@ -13,11 +13,12 @@
 5. MVP 범위 밖 기능을 임의로 추가하지 않는다. 욕심이 생기면 `docs/plans/`에 새 계획서를 먼저 쓴다.
 
 ## 3. 기술 스택 (MVP 기준)
-- 언어/런타임: TypeScript, Node.js 18+
-- 프런트엔드: (착수 시 확정 — 정적 배포 가능한 프레임워크)
-- 배포 후보: Cloudflare Pages + Workers + D1 + R2 + Turnstile (무료 구간)
+- 언어/런타임: TypeScript strict, Node.js 18+
+- 프런트엔드: **Astro 5 + React islands** (정적 우선, 인터랙션 필요 컴포넌트만 island)
+- 대상 업종 1개: **육상풍력**
+- 배포: Cloudflare Pages + Workers + D1 + R2 + Turnstile (무료 구간)
 - 문서·규칙 데이터: `/data/rules`, `/data/templates` (JSON/YAML)
-- 셸: Git Bash (Windows) 또는 WSL2. PowerShell/cmd 전용 명령은 쓰지 않는다.
+- 셸: Git Bash (Windows) 기본. WSL2 허용. PowerShell/cmd 전용 명령은 쓰지 않는다.
 
 ## 4. 디렉터리 규칙
 - `docs/` — 기획·계획·리뷰·변경기록. 구현 결정은 여기에 먼저 기록.

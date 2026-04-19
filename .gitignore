@@ -27,5 +27,6 @@ tmp/
 .temp/
 
 # 프로젝트 고유 (민감)
-data/samples/private/
+data/samples/private/*
+!data/samples/private/README.md
 uploads/
