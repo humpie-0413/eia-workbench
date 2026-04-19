@@ -1,0 +1,31 @@
+# 공통
+node_modules/
+dist/
+build/
+.next/
+.cache/
+coverage/
+.DS_Store
+Thumbs.db
+
+# 환경/비밀
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# 에디터/런타임
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+
+# 로그/임시
+*.log
+tmp/
+.temp/
+
+# 프로젝트 고유 (민감)
+data/samples/private/
+uploads/

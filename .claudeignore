@@ -1,0 +1,11 @@
+node_modules/
+dist/
+build/
+coverage/
+.next/
+.cache/
+*.log
+.env
+.env.*
+data/samples/private/
+uploads/
