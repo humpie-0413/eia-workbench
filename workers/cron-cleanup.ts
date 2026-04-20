@@ -12,7 +12,7 @@ export async function runCleanup(env: CleanupEnv, alert: Alert): Promise<void> {
     ).first<{ n: number }>(),
     env.DB.prepare(
       `SELECT COUNT(*) AS n FROM uploads WHERE deleted_at IS NOT NULL AND deleted_at < datetime('now','-30 days')`
-    ).first<{ n: number }>(),
+    ).first<{ n: number }>()
   ]);
   const pCount = pRow?.n ?? 0;
   const uCount = uRow?.n ?? 0;
@@ -33,7 +33,7 @@ export async function runCleanup(env: CleanupEnv, alert: Alert): Promise<void> {
         level: 'warn',
         reason: 'r2_delete_failed',
         key: row.r2_key,
-        error: err instanceof Error ? err.message : String(err),
+        error: err instanceof Error ? err.message : String(err)
       });
     });
   }
@@ -46,7 +46,7 @@ export async function runCleanup(env: CleanupEnv, alert: Alert): Promise<void> {
       alert({
         level: 'error',
         reason,
-        error: e instanceof Error ? e.message : String(e),
+        error: e instanceof Error ? e.message : String(e)
       });
     }
   }
@@ -69,7 +69,7 @@ export async function runCleanup(env: CleanupEnv, alert: Alert): Promise<void> {
     level: 'info',
     reason: 'cron_cleanup_ok',
     projectsCount: pCount,
-    uploadsCount: uCount,
+    uploadsCount: uCount
   });
 }
 
@@ -77,5 +77,5 @@ export async function runCleanup(env: CleanupEnv, alert: Alert): Promise<void> {
 export default {
   async scheduled(_event: ScheduledController, env: CleanupEnv) {
     await runCleanup(env, (e) => console.log(JSON.stringify(e)));
-  },
+  }
 };

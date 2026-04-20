@@ -27,7 +27,7 @@ test('login → create project → upload PDF → delete → restore', async ({ 
   await page.setInputFiles('input[type="file"]', {
     name: 'sample.pdf',
     mimeType: 'application/pdf',
-    buffer: pdf,
+    buffer: pdf
   });
   await expect(page.getByText('업로드 완료: sample.pdf')).toBeVisible();
   await expect(page.getByRole('cell', { name: 'sample.pdf' })).toBeVisible();

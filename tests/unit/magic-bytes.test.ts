@@ -48,7 +48,10 @@ describe('validateMagicBytes', () => {
     new DataView(buf.buffer).setUint16(26, fname.length, true);
     buf.set(fname, 30);
     expect(
-      await validateMagicBytes(buf, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+      await validateMagicBytes(
+        buf,
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      )
     ).toBe(true);
   });
 

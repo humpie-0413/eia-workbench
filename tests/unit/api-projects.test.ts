@@ -9,7 +9,7 @@ function memDb() {
     prepare(sql: string) {
       async function allImpl<T>() {
         const rows = Object.values(projects).filter((p) => !p.deleted_at);
-        return ({ results: rows as T[] });
+        return { results: rows as T[] };
       }
       return {
         bind(...args: unknown[]) {
@@ -18,10 +18,17 @@ function memDb() {
               if (sql.startsWith('INSERT INTO projects')) {
                 const id = String(args[0]);
                 projects[id] = {
-                  id, owner_id: args[1], name: args[2], industry: args[3],
-                  site_region_code: args[4], site_region: args[5],
-                  site_sub_region_code: args[6], site_sub_region: args[7],
-                  capacity_mw: args[8], created_at: new Date().toISOString(), deleted_at: null
+                  id,
+                  owner_id: args[1],
+                  name: args[2],
+                  industry: args[3],
+                  site_region_code: args[4],
+                  site_region: args[5],
+                  site_sub_region_code: args[6],
+                  site_sub_region: args[7],
+                  capacity_mw: args[8],
+                  created_at: new Date().toISOString(),
+                  deleted_at: null
                 };
               }
               return { success: true };
@@ -29,7 +36,7 @@ function memDb() {
             async first<T>() {
               if (sql.includes('WHERE id = ?')) {
                 const id = String(args[0]);
-                return (projects[id] as unknown) as T;
+                return projects[id] as unknown as T;
               }
               return null;
             },
@@ -63,7 +70,7 @@ describe('POST /api/projects', () => {
     const db = memDb();
     const res = await callRoute('POST', { name: '강원 풍력 1단지', industry: 'onshore_wind' }, db);
     expect(res.status).toBe(201);
-    const j = await res.json() as { id: string };
+    const j = (await res.json()) as { id: string };
     expect(j.id).toMatch(/^[A-Za-z0-9_-]{12}$/);
   });
 
@@ -75,8 +82,11 @@ describe('POST /api/projects', () => {
 
   it('returns 400 when region codes are invalid', async () => {
     const db = memDb();
-    const res = await callRoute('POST',
-      { name: 'x', industry: 'onshore_wind', site_region_code: '99' }, db);
+    const res = await callRoute(
+      'POST',
+      { name: 'x', industry: 'onshore_wind', site_region_code: '99' },
+      db
+    );
     expect(res.status).toBe(400);
   });
 });
@@ -87,7 +97,7 @@ describe('GET /api/projects', () => {
     await callRoute('POST', { name: 'A', industry: 'onshore_wind' }, db);
     const res = await callRoute('GET', undefined, db);
     expect(res.status).toBe(200);
-    const j = await res.json() as { projects: unknown[] };
+    const j = (await res.json()) as { projects: unknown[] };
     expect(j.projects.length).toBe(1);
   });
 });

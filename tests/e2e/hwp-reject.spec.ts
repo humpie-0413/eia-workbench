@@ -33,15 +33,14 @@ test('drop zone rejects HWP with Hancom guidance', async ({ page }) => {
   await page.waitForURL(/\/projects\/[A-Za-z0-9_-]{12}/);
 
   // Static guidance text is always visible in the dropzone paragraph
-  await expect(
-    page.getByText(/한컴오피스에서 PDF로 저장 후 업로드해 주세요/)
-  ).toBeVisible();
+  await expect(page.getByText(/한컴오피스에서 PDF로 저장 후 업로드해 주세요/)).toBeVisible();
 
   // Hancom link — href and accessible name match the actual UploadDropzone
   // (spec expected href 'https://www.hancomoffice.com/' and name /온라인 변환 안내/ — both correct)
-  await expect(
-    page.getByRole('link', { name: /온라인 변환 안내/ })
-  ).toHaveAttribute('href', 'https://www.hancomoffice.com/');
+  await expect(page.getByRole('link', { name: /온라인 변환 안내/ })).toHaveAttribute(
+    'href',
+    'https://www.hancomoffice.com/'
+  );
 
   // Attempt to upload a .hwp file via setInputFiles
   // UploadDropzone checks file.name against /\.(hwp|hwpx)$/i before MIME or size checks.
@@ -49,17 +48,17 @@ test('drop zone rejects HWP with Hancom guidance', async ({ page }) => {
   await page.setInputFiles('input[type="file"]', {
     name: 'legacy.hwp',
     mimeType: 'application/x-hwp',
-    buffer: Buffer.from([0xd0, 0xcf, 0x11, 0xe0]),
+    buffer: Buffer.from([0xd0, 0xcf, 0x11, 0xe0])
   });
 
   // Toast with kind="warn" appears via role="alert" containing the rejection message.
   // Text is 'HWP는 한컴오피스에서 PDF로 저장 후 업로드해 주세요.' (exact pushToast argument).
   await expect(
-    page.getByRole('alert').filter({ hasText: /HWP는 한컴오피스에서 PDF로 저장 후 업로드해 주세요/ })
+    page
+      .getByRole('alert')
+      .filter({ hasText: /HWP는 한컴오피스에서 PDF로 저장 후 업로드해 주세요/ })
   ).toBeVisible();
 
   // Static guidance text remains visible after rejection (dropzone state unchanged)
-  await expect(
-    page.getByText(/한컴오피스에서 PDF로 저장 후 업로드해 주세요/)
-  ).toBeVisible();
+  await expect(page.getByText(/한컴오피스에서 PDF로 저장 후 업로드해 주세요/)).toBeVisible();
 });

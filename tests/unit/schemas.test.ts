@@ -7,7 +7,9 @@ describe('projectCreateSchema', () => {
     expect(r.success).toBe(true);
   });
   it('rejects empty name', () => {
-    expect(projectCreateSchema.safeParse({ name: '', industry: 'onshore_wind' }).success).toBe(false);
+    expect(projectCreateSchema.safeParse({ name: '', industry: 'onshore_wind' }).success).toBe(
+      false
+    );
   });
   it('rejects name > 200 chars', () => {
     const r = projectCreateSchema.safeParse({ name: 'x'.repeat(201), industry: 'onshore_wind' });
@@ -18,8 +20,14 @@ describe('projectCreateSchema', () => {
     expect(r.success).toBe(false);
   });
   it('rejects capacity_mw out of range', () => {
-    expect(projectCreateSchema.safeParse({ name: 'A', industry: 'onshore_wind', capacity_mw: -1 }).success).toBe(false);
-    expect(projectCreateSchema.safeParse({ name: 'A', industry: 'onshore_wind', capacity_mw: 10001 }).success).toBe(false);
+    expect(
+      projectCreateSchema.safeParse({ name: 'A', industry: 'onshore_wind', capacity_mw: -1 })
+        .success
+    ).toBe(false);
+    expect(
+      projectCreateSchema.safeParse({ name: 'A', industry: 'onshore_wind', capacity_mw: 10001 })
+        .success
+    ).toBe(false);
   });
 });
 

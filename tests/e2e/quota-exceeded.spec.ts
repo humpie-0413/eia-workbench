@@ -37,12 +37,10 @@ test('rejects >30MB file with clear error toast', async ({ page }) => {
   await page.setInputFiles('input[type="file"]', {
     name: 'huge.pdf',
     mimeType: 'application/pdf',
-    buffer: big,
+    buffer: big
   });
 
   // Toast with kind="error" — exact message: '파일당 30MB 한도를 초과했습니다.'
   // Regex /30MB 한도를 초과/ matches this verbatim (no change from spec).
-  await expect(
-    page.getByRole('alert').filter({ hasText: /30MB 한도를 초과/ })
-  ).toBeVisible();
+  await expect(page.getByRole('alert').filter({ hasText: /30MB 한도를 초과/ })).toBeVisible();
 });

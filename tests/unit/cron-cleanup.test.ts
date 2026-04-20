@@ -9,7 +9,7 @@ function setup(rowCount: number, r2Keys: string[] = []) {
         bind(..._args: unknown[]) {
           return {
             async first<T>() {
-              if (sql.startsWith('SELECT COUNT')) return ({ n: rowCount } as unknown) as T;
+              if (sql.startsWith('SELECT COUNT')) return { n: rowCount } as unknown as T;
               return null;
             },
             async all<T>() {
@@ -25,7 +25,7 @@ function setup(rowCount: number, r2Keys: string[] = []) {
           };
         },
         async first<T>() {
-          if (sql.startsWith('SELECT COUNT')) return ({ n: rowCount } as unknown) as T;
+          if (sql.startsWith('SELECT COUNT')) return { n: rowCount } as unknown as T;
           return null;
         },
         async all<T>() {
@@ -42,7 +42,11 @@ function setup(rowCount: number, r2Keys: string[] = []) {
     }
   } as unknown as D1Database;
   const r2Deleted: string[] = [];
-  const r2 = { async delete(k: string) { r2Deleted.push(k); } } as unknown as R2Bucket;
+  const r2 = {
+    async delete(k: string) {
+      r2Deleted.push(k);
+    }
+  } as unknown as R2Bucket;
   return { db, r2, deletes, r2Deleted };
 }
 

@@ -11,7 +11,11 @@ function fakeDb() {
           return {
             async run() {
               if (sql.startsWith('INSERT')) {
-                rows.push({ ip: String(args[0]), ts: new Date().toISOString(), ok: Number(args[1]) });
+                rows.push({
+                  ip: String(args[0]),
+                  ts: new Date().toISOString(),
+                  ok: Number(args[1])
+                });
               }
               return { success: true };
             },
@@ -20,7 +24,7 @@ function fakeDb() {
                 const ip = String(args[0]);
                 const since = new Date(Date.now() - 10 * 60 * 1000).toISOString();
                 const n = rows.filter((r) => r.ip === ip && r.ok === 0 && r.ts >= since).length;
-                return ({ n } as unknown) as T;
+                return { n } as unknown as T;
               }
               return null;
             }

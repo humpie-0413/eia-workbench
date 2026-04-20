@@ -31,7 +31,7 @@ function memState() {
             },
             async first<T>() {
               const uploadId = String(args[0]);
-              return (uploads[uploadId] as unknown) as T;
+              return uploads[uploadId] as unknown as T;
             }
           };
         }

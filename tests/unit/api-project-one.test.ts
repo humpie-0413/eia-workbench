@@ -19,10 +19,16 @@ type DbWithRows = D1Database & { rows: Record<string, ProjectRow> };
 function memDb(): DbWithRows {
   const rows: Record<string, ProjectRow> = {
     p1: {
-      id: 'p1', name: 'A', industry: 'onshore_wind',
-      site_region_code: null, site_region: null,
-      site_sub_region_code: null, site_sub_region: null,
-      capacity_mw: null, created_at: '2024-01-01T00:00:00Z', deleted_at: null
+      id: 'p1',
+      name: 'A',
+      industry: 'onshore_wind',
+      site_region_code: null,
+      site_region: null,
+      site_sub_region_code: null,
+      site_sub_region: null,
+      capacity_mw: null,
+      created_at: '2024-01-01T00:00:00Z',
+      deleted_at: null
     }
   };
   const mock = {
@@ -58,7 +64,11 @@ function memDb(): DbWithRows {
   return mock as unknown as DbWithRows;
 }
 
-async function call(method: 'GET' | 'DELETE' | 'PATCH', id: string, db: DbWithRows): Promise<Response> {
+async function call(
+  method: 'GET' | 'DELETE' | 'PATCH',
+  id: string,
+  db: DbWithRows
+): Promise<Response> {
   const base = `http://localhost:3000/api/projects/${id}`;
   const reqInit = { method, headers: { origin: 'http://localhost:3000' } };
   const ctx = {
