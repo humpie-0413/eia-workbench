@@ -12,11 +12,15 @@ export default function RecentlyDeletedDrawer() {
   const panelRef = useRef<HTMLDivElement>(null);
 
   async function refresh() {
-    const r = await fetch('/api/deleted');
-    if (!r.ok) return;
-    const j = (await r.json()) as { projects: DelP[]; uploads: DelU[] };
-    setProjects(j.projects);
-    setUploads(j.uploads);
+    try {
+      const r = await fetch('/api/deleted');
+      if (!r.ok) return;
+      const j = (await r.json()) as { projects: DelP[]; uploads: DelU[] };
+      setProjects(j.projects);
+      setUploads(j.uploads);
+    } catch {
+      pushToast('error', '목록을 불러오지 못했습니다.');
+    }
   }
 
   function close() {
@@ -32,12 +36,13 @@ export default function RecentlyDeletedDrawer() {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.preventDefault();
-        close();
+        setOpen(false);
+        queueMicrotask(() => openerRef.current?.focus());
         return;
       }
       if (e.key === 'Tab') {
         const nodes = panelRef.current?.querySelectorAll<HTMLElement>(
-          'a, button, input, [tabindex]:not([tabindex="-1"])'
+          'a, button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"]):not([disabled])'
         );
         if (!nodes || nodes.length === 0) return;
         const first = nodes[0];
@@ -63,28 +68,36 @@ export default function RecentlyDeletedDrawer() {
   }
 
   async function restoreProject(id: string) {
-    const r = await fetch(`/api/projects/${id}/restore`, {
-      method: 'PATCH',
-      headers: { 'content-type': 'application/json' },
-    });
-    if (r.status === 204) {
-      pushToast('info', '프로젝트를 복구했습니다.');
-      void refresh();
-    } else {
-      pushToast('error', `복구 실패 (HTTP ${r.status}).`);
+    try {
+      const r = await fetch(`/api/projects/${id}/restore`, {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+      });
+      if (r.status === 204) {
+        pushToast('info', '프로젝트를 복구했습니다.');
+        void refresh();
+      } else {
+        pushToast('error', `복구 실패 (HTTP ${r.status}).`);
+      }
+    } catch {
+      pushToast('error', '복구 중 오류가 발생했습니다.');
     }
   }
 
   async function restoreUpload(pid: string, uid: string) {
-    const r = await fetch(`/api/projects/${pid}/uploads/${uid}/restore`, {
-      method: 'PATCH',
-      headers: { 'content-type': 'application/json' },
-    });
-    if (r.status === 204) {
-      pushToast('info', '파일을 복구했습니다.');
-      void refresh();
-    } else {
-      pushToast('error', `복구 실패 (HTTP ${r.status}).`);
+    try {
+      const r = await fetch(`/api/projects/${pid}/uploads/${uid}/restore`, {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+      });
+      if (r.status === 204) {
+        pushToast('info', '파일을 복구했습니다.');
+        void refresh();
+      } else {
+        pushToast('error', `복구 실패 (HTTP ${r.status}).`);
+      }
+    } catch {
+      pushToast('error', '복구 중 오류가 발생했습니다.');
     }
   }
 
