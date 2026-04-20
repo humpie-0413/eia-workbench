@@ -10,10 +10,13 @@ function fromB64url(s: string): Uint8Array<ArrayBuffer> {
   return out;
 }
 
+const enc = new TextEncoder();
+const dec = new TextDecoder();
+
 async function hmacKey(secret: string): Promise<CryptoKey> {
   return crypto.subtle.importKey(
     'raw',
-    new TextEncoder().encode(secret),
+    enc.encode(secret),
     { name: 'HMAC', hash: 'SHA-256' },
     false,
     ['sign', 'verify']
@@ -38,7 +41,6 @@ export async function signJwt(
     iat: payload.iat ?? now,
     exp: payload.exp ?? now + opts.expSeconds
   };
-  const enc = new TextEncoder();
   const h = b64url(enc.encode(JSON.stringify(header)));
   const p = b64url(enc.encode(JSON.stringify(full)));
   const data = enc.encode(`${h}.${p}`);
@@ -60,10 +62,11 @@ export async function verifyJwt(token: string, secret: string): Promise<JwtPaylo
       'HMAC',
       key,
       fromB64url(s),
-      new TextEncoder().encode(`${h}.${p}`)
+      enc.encode(`${h}.${p}`)
     );
     if (!ok) return null;
-    const payload = JSON.parse(new TextDecoder().decode(fromB64url(p))) as JwtPayload;
+    const payload = JSON.parse(dec.decode(fromB64url(p))) as JwtPayload;
+    if (typeof payload.jti !== 'string') return null;
     if (typeof payload.exp !== 'number' || payload.exp < Math.floor(Date.now() / 1000)) return null;
     return payload;
   } catch {

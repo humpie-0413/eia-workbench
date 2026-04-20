@@ -31,4 +31,47 @@ describe('jwt HS256', () => {
     expect(await verifyJwt('not.a.jwt', SECRET)).toBe(null);
     expect(await verifyJwt('only-one-part', SECRET)).toBe(null);
   });
+
+  it('rejects tokens whose payload lacks exp', async () => {
+    // Hand-craft a validly-signed token whose payload has no exp claim.
+    const enc = new TextEncoder();
+    const headerB = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))
+      .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    const payloadB = btoa(JSON.stringify({ jti: 'no-exp' }))
+      .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    const key = await crypto.subtle.importKey(
+      'raw',
+      enc.encode(SECRET),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign']
+    );
+    const sigBytes = new Uint8Array(
+      await crypto.subtle.sign('HMAC', key, enc.encode(`${headerB}.${payloadB}`))
+    );
+    const sigB = btoa(String.fromCharCode(...sigBytes))
+      .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    expect(await verifyJwt(`${headerB}.${payloadB}.${sigB}`, SECRET)).toBe(null);
+  });
+
+  it('rejects tokens whose payload has non-string jti', async () => {
+    const enc = new TextEncoder();
+    const headerB = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))
+      .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    const payloadB = btoa(JSON.stringify({ jti: 123, exp: Math.floor(Date.now() / 1000) + 60 }))
+      .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    const key = await crypto.subtle.importKey(
+      'raw',
+      enc.encode(SECRET),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign']
+    );
+    const sigBytes = new Uint8Array(
+      await crypto.subtle.sign('HMAC', key, enc.encode(`${headerB}.${payloadB}`))
+    );
+    const sigB = btoa(String.fromCharCode(...sigBytes))
+      .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    expect(await verifyJwt(`${headerB}.${payloadB}.${sigB}`, SECRET)).toBe(null);
+  });
 });
