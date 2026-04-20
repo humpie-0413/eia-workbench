@@ -1,0 +1,5 @@
+# Copy to .dev.vars (gitignored) for local dev. Production uses `wrangler secret put`.
+APP_PASSWORD=change-me-long-random
+JWT_SECRET=change-me-min-32-chars-random-hex
+TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA   # Cloudflare test key (always passes)
+TURNSTILE_SITE_KEY=1x00000000000000000000AA                 # Cloudflare test key
