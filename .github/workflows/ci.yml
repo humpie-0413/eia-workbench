@@ -1,0 +1,25 @@
+name: CI
+on: [push, pull_request]
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - name: assertion-grep
+        run: bash scripts/assertion-grep.sh
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+      - name: apply D1 migrations (local)
+        run: npx wrangler d1 migrations apply DB --local
+      - run: npx playwright install --with-deps chromium
+      - name: e2e
+        env:
+          E2E_APP_PASSWORD: ${{ secrets.E2E_APP_PASSWORD || 'change-me-long-random' }}
+        run: npm run test:e2e
+      - run: npm run build
