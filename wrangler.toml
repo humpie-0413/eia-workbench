@@ -16,5 +16,3 @@ bucket_name = "eia-workbench-uploads-dev"
 [vars]
 APP_ORIGIN = "http://localhost:3000"
 
-[triggers]
-crons = ["0 18 * * *"]  # daily 03:00 KST (UTC 18:00 prev day)
