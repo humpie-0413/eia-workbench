@@ -7,7 +7,7 @@ const MUTATING = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
 const SECURITY_HEADERS: Record<string, string> = {
   'content-security-policy':
-    "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+    "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'",
   'x-content-type-options': 'nosniff',
   'x-frame-options': 'DENY',
   'referrer-policy': 'strict-origin-when-cross-origin'
@@ -15,11 +15,17 @@ const SECURITY_HEADERS: Record<string, string> = {
 
 export const onRequest: MiddlewareHandler = async (context, next) => {
   const { url, request, locals, redirect } = context;
+  if (!locals.runtime) {
+    throw new Error('Cloudflare runtime not available — ensure @astrojs/cloudflare adapter is used');
+  }
   const env = locals.runtime.env;
   const method = request.method.toUpperCase();
   const isApi = url.pathname.startsWith('/api/');
   const isPublic = PUBLIC_PATHS.has(url.pathname);
 
+  // CSRF check is intentionally unconditional. Public paths that accept
+  // mutating requests (e.g. POST /login) still require a matching Origin;
+  // do not wrap this block with `if (!isPublic)`.
   if (MUTATING.has(method)) {
     const origin = request.headers.get('origin');
     if (!origin || origin !== env.APP_ORIGIN) {
