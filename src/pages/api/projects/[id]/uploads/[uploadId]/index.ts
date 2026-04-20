@@ -11,7 +11,15 @@ export const DELETE: APIRoute = async ({ params, locals }) => {
   }
   await env.DB.prepare(
     `UPDATE uploads SET deleted_at = datetime('now') WHERE id = ? AND deleted_at IS NULL`
-  ).bind(uploadId).run();
-  logger.info({ route: '/api/projects/[id]/uploads/[uploadId]', method: 'DELETE', status: 204, latencyMs: Date.now() - t0, jti });
+  )
+    .bind(uploadId)
+    .run();
+  logger.info({
+    route: '/api/projects/[id]/uploads/[uploadId]',
+    method: 'DELETE',
+    status: 204,
+    latencyMs: Date.now() - t0,
+    jti
+  });
   return new Response(null, { status: 204 });
 };

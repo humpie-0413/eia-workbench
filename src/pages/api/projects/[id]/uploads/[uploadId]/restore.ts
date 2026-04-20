@@ -9,9 +9,13 @@ export const PATCH: APIRoute = async ({ params, locals }) => {
   if (uploadId === undefined) {
     return new Response('bad request', { status: 400 });
   }
-  await env.DB.prepare(
-    `UPDATE uploads SET deleted_at = NULL WHERE id = ?`
-  ).bind(uploadId).run();
-  logger.info({ route: '/api/projects/[id]/uploads/[uploadId]/restore', method: 'PATCH', status: 204, latencyMs: Date.now() - t0, jti });
+  await env.DB.prepare(`UPDATE uploads SET deleted_at = NULL WHERE id = ?`).bind(uploadId).run();
+  logger.info({
+    route: '/api/projects/[id]/uploads/[uploadId]/restore',
+    method: 'PATCH',
+    status: 204,
+    latencyMs: Date.now() - t0,
+    jti
+  });
   return new Response(null, { status: 204 });
 };

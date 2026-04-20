@@ -16,7 +16,13 @@ export const GET: APIRoute = async ({ locals }) => {
        WHERE deleted_at IS NOT NULL AND deleted_at >= datetime('now','-30 days')
        ORDER BY deleted_at DESC`
     ).all();
-    logger.info({ route: '/api/deleted', method: 'GET', status: 200, latencyMs: Date.now() - t0, jti });
+    logger.info({
+      route: '/api/deleted',
+      method: 'GET',
+      status: 200,
+      latencyMs: Date.now() - t0,
+      jti
+    });
     return Response.json({ projects: projects.results, uploads: uploads.results });
   } catch (err) {
     logger.error({

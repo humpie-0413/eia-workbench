@@ -16,7 +16,9 @@ const SECURITY_HEADERS: Record<string, string> = {
 export const onRequest: MiddlewareHandler = async (context, next) => {
   const { url, request, locals, redirect } = context;
   if (!locals.runtime) {
-    throw new Error('Cloudflare runtime not available — ensure @astrojs/cloudflare adapter is used');
+    throw new Error(
+      'Cloudflare runtime not available — ensure @astrojs/cloudflare adapter is used'
+    );
   }
   const env = locals.runtime.env;
   const method = request.method.toUpperCase();

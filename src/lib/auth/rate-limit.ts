@@ -1,7 +1,10 @@
 import { LOGIN_FAIL_MAX, LOGIN_FAIL_WINDOW_MINUTES } from '../constants';
 
 export async function recordAttempt(db: D1Database, ip: string, ok: boolean): Promise<void> {
-  await db.prepare('INSERT INTO login_attempts (ip, ok) VALUES (?, ?)').bind(ip, ok ? 1 : 0).run();
+  await db
+    .prepare('INSERT INTO login_attempts (ip, ok) VALUES (?, ?)')
+    .bind(ip, ok ? 1 : 0)
+    .run();
 }
 
 export async function isBlocked(db: D1Database, ip: string): Promise<boolean> {

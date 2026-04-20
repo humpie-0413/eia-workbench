@@ -1,7 +1,13 @@
 import { useEffect, useState, useCallback } from 'react';
 import { pushToast } from './toast-store';
 
-type Upload = { id: string; original_name: string; mime: string; size_bytes: number; created_at: string };
+type Upload = {
+  id: string;
+  original_name: string;
+  mime: string;
+  size_bytes: number;
+  created_at: string;
+};
 
 export default function FileList({ projectId }: { projectId: string }) {
   const [items, setItems] = useState<Upload[]>([]);
@@ -34,24 +40,33 @@ export default function FileList({ projectId }: { projectId: string }) {
   }
 
   return (
-    <table className="w-full border border-border rounded-md overflow-hidden">
-      <thead className="text-small text-text-secondary bg-bg">
+    <table className="w-full overflow-hidden rounded-md border border-border">
+      <thead className="bg-bg text-small text-text-secondary">
         <tr>
-          <th className="text-left px-4 py-2">이름</th>
-          <th className="text-left px-4 py-2">크기</th>
-          <th className="text-left px-4 py-2">업로드</th>
-          <th className="text-left px-4 py-2 sr-only">동작</th>
+          <th className="px-4 py-2 text-left">이름</th>
+          <th className="px-4 py-2 text-left">크기</th>
+          <th className="px-4 py-2 text-left">업로드</th>
+          <th className="sr-only px-4 py-2 text-left">동작</th>
         </tr>
       </thead>
       <tbody>
         {items.map((u) => (
           <tr key={u.id} className="border-t border-border">
             <td className="px-4 py-2">{u.original_name}</td>
-            <td className="px-4 py-2 text-small text-text-secondary">{(u.size_bytes / 1024).toFixed(0)} KB</td>
-            <td className="px-4 py-2 text-small text-text-tertiary">{new Date(u.created_at).toLocaleString('ko-KR')}</td>
+            <td className="px-4 py-2 text-small text-text-secondary">
+              {(u.size_bytes / 1024).toFixed(0)} KB
+            </td>
+            <td className="px-4 py-2 text-small text-text-tertiary">
+              {new Date(u.created_at).toLocaleString('ko-KR')}
+            </td>
             <td className="px-4 py-2 text-right">
-              <button onClick={() => del(u.id)} aria-label={`${u.original_name} 삭제`}
-                      className="text-small text-danger hover:underline">삭제</button>
+              <button
+                onClick={() => del(u.id)}
+                aria-label={`${u.original_name} 삭제`}
+                className="text-small text-danger hover:underline"
+              >
+                삭제
+              </button>
             </td>
           </tr>
         ))}

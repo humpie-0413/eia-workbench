@@ -58,12 +58,7 @@ export async function verifyJwt(token: string, secret: string): Promise<JwtPaylo
   if (h === undefined || p === undefined || s === undefined) return null;
   try {
     const key = await hmacKey(secret);
-    const ok = await crypto.subtle.verify(
-      'HMAC',
-      key,
-      fromB64url(s),
-      enc.encode(`${h}.${p}`)
-    );
+    const ok = await crypto.subtle.verify('HMAC', key, fromB64url(s), enc.encode(`${h}.${p}`));
     if (!ok) return null;
     const payload = JSON.parse(dec.decode(fromB64url(p))) as JwtPayload;
     if (typeof payload.jti !== 'string') return null;

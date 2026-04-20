@@ -1,8 +1,19 @@
 import data from '@/data/administrative-divisions.json';
 
-export interface Sub { code: string; name: string; }
-export interface Region { code: string; name: string; subs: Sub[]; }
-export interface RegionDataset { version: string; source: string; regions: Region[]; }
+export interface Sub {
+  code: string;
+  name: string;
+}
+export interface Region {
+  code: string;
+  name: string;
+  subs: Sub[];
+}
+export interface RegionDataset {
+  version: string;
+  source: string;
+  regions: Region[];
+}
 
 export function loadRegions(): RegionDataset {
   return data as RegionDataset;

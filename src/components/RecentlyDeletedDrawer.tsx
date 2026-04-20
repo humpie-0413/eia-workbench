@@ -71,7 +71,7 @@ export default function RecentlyDeletedDrawer() {
     try {
       const r = await fetch(`/api/projects/${id}/restore`, {
         method: 'PATCH',
-        headers: { 'content-type': 'application/json' },
+        headers: { 'content-type': 'application/json' }
       });
       if (r.status === 204) {
         pushToast('info', '프로젝트를 복구했습니다.');
@@ -88,7 +88,7 @@ export default function RecentlyDeletedDrawer() {
     try {
       const r = await fetch(`/api/projects/${pid}/uploads/${uid}/restore`, {
         method: 'PATCH',
-        headers: { 'content-type': 'application/json' },
+        headers: { 'content-type': 'application/json' }
       });
       if (r.status === 204) {
         pushToast('info', '파일을 복구했습니다.');
@@ -107,7 +107,7 @@ export default function RecentlyDeletedDrawer() {
         ref={openerRef}
         type="button"
         onClick={() => setOpen(true)}
-        className="h-9 px-4 rounded-md border border-border bg-surface text-small text-text-secondary"
+        className="h-9 rounded-md border border-border bg-surface px-4 text-small text-text-secondary"
       >
         최근 삭제
       </button>
@@ -124,12 +124,12 @@ export default function RecentlyDeletedDrawer() {
             aria-modal="true"
             aria-label="최근 삭제함"
             tabIndex={-1}
-            className="absolute right-0 top-0 h-full w-96 bg-surface border-l border-border p-6 overflow-y-auto focus:outline-none"
+            className="absolute right-0 top-0 h-full w-96 overflow-y-auto border-l border-border bg-surface p-6 focus:outline-none"
           >
-            <h2 className="text-h1 mb-4">최근 삭제 (30일 내)</h2>
+            <h2 className="mb-4 text-h1">최근 삭제 (30일 내)</h2>
 
             <section className="mb-6">
-              <h3 className="text-h2 mb-2">프로젝트</h3>
+              <h3 className="mb-2 text-h2">프로젝트</h3>
               {projects.length === 0 ? (
                 <p className="text-small text-text-tertiary">없음.</p>
               ) : (
@@ -140,7 +140,9 @@ export default function RecentlyDeletedDrawer() {
                   >
                     <div>
                       <p>{x.name}</p>
-                      <p className="text-small text-text-tertiary">D-{daysLeft(x.deleted_at)} 남음</p>
+                      <p className="text-small text-text-tertiary">
+                        D-{daysLeft(x.deleted_at)} 남음
+                      </p>
                     </div>
                     <button
                       type="button"
@@ -155,7 +157,7 @@ export default function RecentlyDeletedDrawer() {
             </section>
 
             <section>
-              <h3 className="text-h2 mb-2">파일</h3>
+              <h3 className="mb-2 text-h2">파일</h3>
               {uploads.length === 0 ? (
                 <p className="text-small text-text-tertiary">없음.</p>
               ) : (
@@ -166,7 +168,9 @@ export default function RecentlyDeletedDrawer() {
                   >
                     <div>
                       <p>{x.original_name}</p>
-                      <p className="text-small text-text-tertiary">D-{daysLeft(x.deleted_at)} 남음</p>
+                      <p className="text-small text-text-tertiary">
+                        D-{daysLeft(x.deleted_at)} 남음
+                      </p>
                     </div>
                     <button
                       type="button"
@@ -183,7 +187,7 @@ export default function RecentlyDeletedDrawer() {
             <button
               type="button"
               onClick={close}
-              className="mt-6 h-9 px-4 rounded-md border border-border"
+              className="mt-6 h-9 rounded-md border border-border px-4"
             >
               닫기
             </button>

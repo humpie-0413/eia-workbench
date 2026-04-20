@@ -14,7 +14,9 @@ export function buildSessionCookie(token: string): string {
 }
 
 export function buildLogoutCookie(): string {
-  return [`${SESSION_COOKIE}=`, 'HttpOnly', 'Secure', 'SameSite=Lax', 'Path=/', 'Max-Age=0'].join('; ');
+  return [`${SESSION_COOKIE}=`, 'HttpOnly', 'Secure', 'SameSite=Lax', 'Path=/', 'Max-Age=0'].join(
+    '; '
+  );
 }
 
 export function parseSessionCookie(header: string | null): string | null {

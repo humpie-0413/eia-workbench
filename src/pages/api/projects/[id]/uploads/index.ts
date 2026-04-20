@@ -8,7 +8,9 @@ import { logger } from '@/lib/logger';
 
 async function sha256Hex(buf: ArrayBuffer): Promise<string> {
   const digest = await crypto.subtle.digest('SHA-256', buf);
-  return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, '0')).join('');
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
 }
 
 export const POST: APIRoute = async ({ params, request, locals }) => {
@@ -21,7 +23,9 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
 
   const project = await env.DB.prepare(
     `SELECT id FROM projects WHERE id = ? AND deleted_at IS NULL`
-  ).bind(projectId).first<{ id: string }>();
+  )
+    .bind(projectId)
+    .first<{ id: string }>();
   if (!project) return new Response('project not found', { status: 404 });
 
   let form: FormData;
@@ -45,11 +49,14 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
   const quota = await env.DB.prepare(
     `SELECT COALESCE(SUM(size_bytes), 0) AS total, COUNT(*) AS n FROM uploads
      WHERE project_id = ? AND deleted_at IS NULL`
-  ).bind(projectId).first<{ total: number; n: number }>();
+  )
+    .bind(projectId)
+    .first<{ total: number; n: number }>();
   const total = quota?.total ?? 0;
   const n = quota?.n ?? 0;
   if (n >= MAX_PROJECT_FILES) return new Response('project file-count exceeded', { status: 413 });
-  if (total + file.size > MAX_PROJECT_BYTES) return new Response('project quota exceeded', { status: 413 });
+  if (total + file.size > MAX_PROJECT_BYTES)
+    return new Response('project quota exceeded', { status: 413 });
 
   const bytes = new Uint8Array(await file.arrayBuffer());
   const ok = await validateMagicBytes(bytes, meta.data.mime);
@@ -58,10 +65,21 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
   const sha = await sha256Hex(bytes.buffer as ArrayBuffer);
   const dup = await env.DB.prepare(
     `SELECT id, original_name, created_at FROM uploads WHERE project_id = ? AND sha256 = ? AND deleted_at IS NULL`
-  ).bind(projectId, sha).first<{ id: string; original_name: string; created_at: string }>();
+  )
+    .bind(projectId, sha)
+    .first<{ id: string; original_name: string; created_at: string }>();
   if (dup) {
-    logger.info({ route: '/api/projects/[id]/uploads', method: 'POST', status: 409, latencyMs: Date.now() - t0, jti });
-    return Response.json({ error: 'duplicate', original_name: dup.original_name, created_at: dup.created_at }, { status: 409 });
+    logger.info({
+      route: '/api/projects/[id]/uploads',
+      method: 'POST',
+      status: 409,
+      latencyMs: Date.now() - t0,
+      jti
+    });
+    return Response.json(
+      { error: 'duplicate', original_name: dup.original_name, created_at: dup.created_at },
+      { status: 409 }
+    );
   }
 
   const id = newUploadId();
@@ -73,7 +91,9 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
     await env.DB.prepare(
       `INSERT INTO uploads (id, project_id, r2_key, sha256, original_name, mime, size_bytes)
        VALUES (?, ?, ?, ?, ?, ?, ?)`
-    ).bind(id, projectId, key, sha, meta.data.original_name, meta.data.mime, meta.data.size_bytes).run();
+    )
+      .bind(id, projectId, key, sha, meta.data.original_name, meta.data.mime, meta.data.size_bytes)
+      .run();
   } catch (err) {
     if (r2Uploaded) {
       await env.UPLOADS.delete(key).catch(() => {});
@@ -89,7 +109,13 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
     return new Response('internal', { status: 500 });
   }
 
-  logger.info({ route: '/api/projects/[id]/uploads', method: 'POST', status: 201, latencyMs: Date.now() - t0, jti });
+  logger.info({
+    route: '/api/projects/[id]/uploads',
+    method: 'POST',
+    status: 201,
+    latencyMs: Date.now() - t0,
+    jti
+  });
   return Response.json({ id, r2_key: key, sha256: sha }, { status: 201 });
 };
 
@@ -103,16 +129,32 @@ export const GET: APIRoute = async ({ params, locals }) => {
 
   const project = await env.DB.prepare(
     `SELECT id FROM projects WHERE id = ? AND deleted_at IS NULL`
-  ).bind(projectId).first<{ id: string }>();
+  )
+    .bind(projectId)
+    .first<{ id: string }>();
   if (!project) {
-    logger.info({ route: '/api/projects/[id]/uploads', method: 'GET', status: 404, latencyMs: Date.now() - t0, jti });
+    logger.info({
+      route: '/api/projects/[id]/uploads',
+      method: 'GET',
+      status: 404,
+      latencyMs: Date.now() - t0,
+      jti
+    });
     return new Response('project not found', { status: 404 });
   }
 
   const { results } = await env.DB.prepare(
     `SELECT id, original_name, mime, size_bytes, created_at FROM uploads
      WHERE project_id = ? AND deleted_at IS NULL ORDER BY created_at DESC`
-  ).bind(projectId).all();
-  logger.info({ route: '/api/projects/[id]/uploads', method: 'GET', status: 200, latencyMs: Date.now() - t0, jti });
+  )
+    .bind(projectId)
+    .all();
+  logger.info({
+    route: '/api/projects/[id]/uploads',
+    method: 'GET',
+    status: 200,
+    latencyMs: Date.now() - t0,
+    jti
+  });
   return Response.json({ uploads: results });
 };

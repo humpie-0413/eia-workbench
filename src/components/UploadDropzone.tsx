@@ -37,7 +37,10 @@ export default function UploadDropzone({ projectId }: { projectId: string }) {
     }
     if (res.status === 409) {
       const j = (await res.json()) as { original_name: string; created_at: string };
-      pushToast('warn', `이미 업로드됨: ${j.original_name} · ${new Date(j.created_at).toLocaleString('ko-KR')}`);
+      pushToast(
+        'warn',
+        `이미 업로드됨: ${j.original_name} · ${new Date(j.created_at).toLocaleString('ko-KR')}`
+      );
       return;
     }
     if (res.status === 413) {
@@ -53,31 +56,48 @@ export default function UploadDropzone({ projectId }: { projectId: string }) {
 
   return (
     <div
-      onDragOver={(e) => { e.preventDefault(); }}
+      onDragOver={(e) => {
+        e.preventDefault();
+      }}
       onDrop={async (e) => {
         e.preventDefault();
         for (const f of Array.from(e.dataTransfer.files)) await upload(f);
       }}
-      className="border-2 border-dashed border-border rounded-md p-8 text-center bg-surface"
-      role="region" aria-label="파일 업로드 영역"
+      className="rounded-md border-2 border-dashed border-border bg-surface p-8 text-center"
+      role="region"
+      aria-label="파일 업로드 영역"
     >
       <p className="text-body">
-        PDF / DOCX / TXT만 지원합니다.
-        HWP는 한컴오피스에서 PDF로 저장 후 업로드해 주세요.{' '}
-        <a href="https://www.hancomoffice.com/" target="_blank" rel="noreferrer"
-           className="text-primary underline">온라인 변환 안내 ↗</a>
+        PDF / DOCX / TXT만 지원합니다. HWP는 한컴오피스에서 PDF로 저장 후 업로드해 주세요.{' '}
+        <a
+          href="https://www.hancomoffice.com/"
+          target="_blank"
+          rel="noreferrer"
+          className="text-primary underline"
+        >
+          온라인 변환 안내 ↗
+        </a>
       </p>
-      <p className="text-small text-text-tertiary mt-1">드래그하여 놓거나 버튼으로 선택.</p>
-      <button type="button" disabled={busy} onClick={() => inputRef.current?.click()}
-              className="mt-4 h-9 px-4 rounded-md bg-primary text-white disabled:opacity-50">
+      <p className="mt-1 text-small text-text-tertiary">드래그하여 놓거나 버튼으로 선택.</p>
+      <button
+        type="button"
+        disabled={busy}
+        onClick={() => inputRef.current?.click()}
+        className="mt-4 h-9 rounded-md bg-primary px-4 text-white disabled:opacity-50"
+      >
         {busy ? '업로드 중…' : '파일 선택'}
       </button>
-      <input ref={inputRef} type="file" hidden multiple
-             accept=".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
-             onChange={async (e) => {
-               for (const f of Array.from(e.target.files ?? [])) await upload(f);
-               if (inputRef.current) inputRef.current.value = '';
-             }} />
+      <input
+        ref={inputRef}
+        type="file"
+        hidden
+        multiple
+        accept=".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
+        onChange={async (e) => {
+          for (const f of Array.from(e.target.files ?? [])) await upload(f);
+          if (inputRef.current) inputRef.current.value = '';
+        }}
+      />
     </div>
   );
 }

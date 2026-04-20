@@ -44,10 +44,7 @@ function isValidUtf8(bytes: Uint8Array): boolean {
   }
 }
 
-export async function validateMagicBytes(
-  bytes: Uint8Array,
-  mime: AllowedMime
-): Promise<boolean> {
+export async function validateMagicBytes(bytes: Uint8Array, mime: AllowedMime): Promise<boolean> {
   if (mime === 'application/pdf') return startsWith(bytes, PDF);
   if (mime === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
     return startsWith(bytes, ZIP) && hasEntry(bytes, '[Content_Types].xml');

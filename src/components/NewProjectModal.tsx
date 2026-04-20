@@ -11,7 +11,7 @@ export default function NewProjectModal() {
   const [regionCode, setRegionCode] = useState('');
   const dialogRef = useRef<HTMLDialogElement>(null);
   const firstRef = useRef<HTMLInputElement>(null);
-  const openerRef = useRef<HTMLButtonElement>(null);  // P3: opener ref
+  const openerRef = useRef<HTMLButtonElement>(null); // P3: opener ref
 
   // P3: show/close + initial focus + focus restore on close
   useEffect(() => {
@@ -47,7 +47,9 @@ export default function NewProjectModal() {
     }
     if (sub) {
       body.site_sub_region_code = sub;
-      body.site_sub_region = regions.find((r) => r.code === reg)?.subs.find((s) => s.code === sub)?.name;
+      body.site_sub_region = regions
+        .find((r) => r.code === reg)
+        ?.subs.find((s) => s.code === sub)?.name;
     }
     const capRaw = String(form.get('capacity_mw') ?? '');
     if (capRaw) body.capacity_mw = Number(capRaw);
@@ -68,53 +70,94 @@ export default function NewProjectModal() {
 
   return (
     <>
-      <button type="button" ref={openerRef} onClick={() => setOpen(true)}
-              className="h-9 px-4 rounded-md bg-primary text-white hover:bg-primary-hover">
+      <button
+        type="button"
+        ref={openerRef}
+        onClick={() => setOpen(true)}
+        className="h-9 rounded-md bg-primary px-4 text-white hover:bg-primary-hover"
+      >
         새 프로젝트
       </button>
-      <dialog ref={dialogRef} onClose={closeModal}
-              className="rounded-md p-0 backdrop:bg-black/40">
-        <form method="dialog" onSubmit={handleSubmit}
-              className="w-[32rem] p-6 space-y-4 bg-surface">
+      <dialog ref={dialogRef} onClose={closeModal} className="rounded-md p-0 backdrop:bg-black/40">
+        <form
+          method="dialog"
+          onSubmit={handleSubmit}
+          className="w-[32rem] space-y-4 bg-surface p-6"
+        >
           <h2 className="text-h1">새 프로젝트</h2>
           <label className="block space-y-1">
             <span className="text-body font-semibold">이름 *</span>
-            <input ref={firstRef} name="name" required maxLength={200}
-                   className="w-full h-9 px-3 border border-border rounded-md" />
+            <input
+              ref={firstRef}
+              name="name"
+              required
+              maxLength={200}
+              className="h-9 w-full rounded-md border border-border px-3"
+            />
           </label>
           <div className="space-y-1">
             <span className="text-body font-semibold">업종</span>
-            <p className="h-9 px-3 flex items-center border border-border rounded-md text-text-secondary bg-bg">육상풍력 (onshore_wind) · v0 고정</p>
+            <p className="flex h-9 items-center rounded-md border border-border bg-bg px-3 text-text-secondary">
+              육상풍력 (onshore_wind) · v0 고정
+            </p>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <label className="space-y-1">
               <span className="text-body font-semibold">시/도</span>
-              <select name="site_region_code" value={regionCode}
-                      onChange={(e) => setRegionCode(e.target.value)}
-                      className="w-full h-9 px-3 border border-border rounded-md">
+              <select
+                name="site_region_code"
+                value={regionCode}
+                onChange={(e) => setRegionCode(e.target.value)}
+                className="h-9 w-full rounded-md border border-border px-3"
+              >
                 <option value="">선택 없음</option>
-                {regions.map((r) => <option key={r.code} value={r.code}>{r.name}</option>)}
+                {regions.map((r) => (
+                  <option key={r.code} value={r.code}>
+                    {r.name}
+                  </option>
+                ))}
               </select>
             </label>
             <label className="space-y-1">
               <span className="text-body font-semibold">시/군/구</span>
-              <select name="site_sub_region_code" disabled={!regionCode}
-                      className="w-full h-9 px-3 border border-border rounded-md">
+              <select
+                name="site_sub_region_code"
+                disabled={!regionCode}
+                className="h-9 w-full rounded-md border border-border px-3"
+              >
                 <option value="">선택 없음</option>
-                {subs.map((s) => <option key={s.code} value={s.code}>{s.name}</option>)}
+                {subs.map((s) => (
+                  <option key={s.code} value={s.code}>
+                    {s.name}
+                  </option>
+                ))}
               </select>
             </label>
           </div>
           <label className="block space-y-1">
             <span className="text-body font-semibold">용량 (MW, 선택)</span>
-            <input name="capacity_mw" type="number" min={0} max={10000} step={0.1}
-                   className="w-full h-9 px-3 border border-border rounded-md" />
+            <input
+              name="capacity_mw"
+              type="number"
+              min={0}
+              max={10000}
+              step={0.1}
+              className="h-9 w-full rounded-md border border-border px-3"
+            />
           </label>
           <div className="flex justify-end gap-2 pt-2">
-            <button type="button" onClick={closeModal}
-                    className="h-9 px-4 rounded-md border border-border">취소</button>
-            <button type="submit" disabled={submitting}
-                    className="h-9 px-4 rounded-md bg-primary text-white disabled:opacity-50">
+            <button
+              type="button"
+              onClick={closeModal}
+              className="h-9 rounded-md border border-border px-4"
+            >
+              취소
+            </button>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="h-9 rounded-md bg-primary px-4 text-white disabled:opacity-50"
+            >
               {submitting ? '생성 중…' : '만들기'}
             </button>
           </div>
