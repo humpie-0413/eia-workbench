@@ -1,6 +1,7 @@
 /// <reference types="astro/client" />
 
-type Runtime = import('@astrojs/cloudflare').Runtime<Env>;
+import type { Runtime as CfRuntime } from '@astrojs/cloudflare';
+type Runtime = CfRuntime<Env>;
 
 interface Env {
   DB: D1Database;

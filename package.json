@@ -9,7 +9,7 @@
     "build": "astro build",
     "preview": "wrangler pages dev ./dist --d1=DB --r2=UPLOADS --compatibility-date=2024-09-23 --compatibility-flag=nodejs_compat",
     "typecheck": "astro check && tsc --noEmit",
-    "lint": "eslint 'src/**/*.{ts,tsx,astro}' && prettier --check 'src/**/*.{ts,tsx,astro,md}'",
+    "lint": "eslint . && prettier --check \"src/**/*.{ts,tsx,astro,md}\"",
     "format": "prettier --write 'src/**/*.{ts,tsx,astro,md}'",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -34,6 +34,7 @@
   "devDependencies": {
     "@astrojs/check": "^0.9.0",
     "@cloudflare/workers-types": "^4.20241022.0",
+    "@eslint/js": "^9.0.0",
     "@playwright/test": "^1.48.0",
     "@types/node": "^20.0.0",
     "@types/react": "^18.3.0",
