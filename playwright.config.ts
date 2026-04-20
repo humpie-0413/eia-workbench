@@ -5,7 +5,7 @@ export default defineConfig({
   timeout: 30_000,
   fullyParallel: true,
   retries: 0,
-  use: { baseURL: 'http://localhost:3000', trace: 'on-first-retry' },
+  use: { baseURL: 'http://localhost:3000', trace: 'on' },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
     command: 'npm run dev',

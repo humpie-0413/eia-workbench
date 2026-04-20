@@ -2,6 +2,12 @@ import { test, expect } from '@playwright/test';
 
 const PASSWORD = process.env['E2E_APP_PASSWORD'] ?? 'change-me-long-random';
 
+// NOTE: This test requires a running dev server AND:
+//   - .dev.vars TURNSTILE_SECRET_KEY set to Cloudflare test secret (1x0000000000000000000000000000000AA)
+//   - TURNSTILE_SITE_KEY set to test site key (1x00000000000000000000AA)
+//   - APP_PASSWORD set; E2E_APP_PASSWORD env var must match it
+//   - Fresh local D1 (npm run db:migrate:local) — this test does NOT clean up after itself.
+
 test('login → create project → upload PDF → delete → restore', async ({ page }) => {
   await page.goto('/login');
   await page.fill('input[name="password"]', PASSWORD);
@@ -24,7 +30,7 @@ test('login → create project → upload PDF → delete → restore', async ({ 
     buffer: pdf,
   });
   await expect(page.getByText('업로드 완료: sample.pdf')).toBeVisible();
-  await expect(page.getByText('sample.pdf')).toBeVisible();
+  await expect(page.getByRole('cell', { name: 'sample.pdf' })).toBeVisible();
 
   await page.getByRole('button', { name: /sample\.pdf 삭제/ }).click();
   await expect(page.getByText('삭제했습니다')).toBeVisible();
