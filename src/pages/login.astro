@@ -1,12 +1,5 @@
 ---
-import { loginSchema } from '@/lib/schemas';
-import { timingSafeEqual } from '@/lib/auth/password';
-import { signJwt } from '@/lib/auth/jwt';
-import { buildSessionCookie } from '@/lib/auth/session';
-import { isBlocked, recordAttempt } from '@/lib/auth/rate-limit';
-import { verifyTurnstile } from '@/lib/auth/turnstile';
-import { newJti } from '@/lib/id';
-import { LOGIN_MIN_RESPONSE_MS, SESSION_MAX_AGE_SECONDS } from '@/lib/constants';
+import { handleLoginPost } from '@/pages/login.post-handler';
 
 if (!Astro.locals.runtime) {
   throw new Error('Cloudflare runtime not available — ensure @astrojs/cloudflare adapter is used');
@@ -14,65 +7,57 @@ if (!Astro.locals.runtime) {
 const env = Astro.locals.runtime.env;
 const ip = Astro.request.headers.get('cf-connecting-ip') ?? '0.0.0.0';
 let error: string | null = null;
-let successResponse: Response | null = null;
-const started = Date.now();
 
 if (Astro.request.method === 'POST') {
-  if (await isBlocked(env.DB, ip)) {
-    error = '잠시 후 다시 시도하세요.';
-  } else {
-    const form = await Astro.request.formData();
-    const parsed = loginSchema.safeParse({
-      password: form.get('password'),
-      turnstileToken: form.get('cf-turnstile-response')
-    });
-    if (!parsed.success) {
-      await recordAttempt(env.DB, ip, false);
-      error = '입력값을 다시 확인해 주세요.';
-    } else {
-      const turnstileOk = await verifyTurnstile(parsed.data.turnstileToken, env.TURNSTILE_SECRET_KEY, ip);
-      const pwOk = timingSafeEqual(parsed.data.password, env.APP_PASSWORD);
-      if (turnstileOk && pwOk) {
-        await recordAttempt(env.DB, ip, true);
-        const token = await signJwt({ jti: newJti() }, env.JWT_SECRET, { expSeconds: SESSION_MAX_AGE_SECONDS });
-        successResponse = new Response(null, {
-          status: 303,
-          headers: { location: '/', 'set-cookie': buildSessionCookie(token) }
-        });
-      } else {
-        await recordAttempt(env.DB, ip, false);
-        error = '로그인에 실패했습니다.';
-      }
-    }
-  }
-  const elapsed = Date.now() - started;
-  if (elapsed < LOGIN_MIN_RESPONSE_MS) {
-    await new Promise((r) => setTimeout(r, LOGIN_MIN_RESPONSE_MS - elapsed));
-  }
-  if (successResponse) return successResponse;
+  const result = await handleLoginPost(Astro.request, env, ip);
+  if (result.kind === 'response') return result.response;
+  error = result.message;
 }
 ---
+
 <html lang="ko">
-<head>
-  <meta charset="utf-8" />
-  <title>로그인 · eia-workbench</title>
-  <link rel="stylesheet" href="/src/styles/global.css" />
-  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
-</head>
-<body class="min-h-screen grid place-items-center bg-bg">
-  <form method="post" class="w-full max-w-sm bg-surface border border-border rounded-md p-6 space-y-4">
-    <h1 class="text-h1">eia-workbench · v0 파일럿</h1>
-    <p class="text-small text-text-secondary">
-      이 인스턴스의 프로젝트는 인증된 모든 사용자에게 보입니다. 조직별 격리가 필요하면 별도 배포를 사용하세요.
-    </p>
-    <label class="block space-y-1">
-      <span class="text-body font-semibold">패스워드 *</span>
-      <input type="password" name="password" required aria-required="true"
-        class="w-full h-9 px-3 border border-border rounded-md bg-surface" />
-    </label>
-    <div class="cf-turnstile" data-sitekey={env.TURNSTILE_SITE_KEY} data-theme="light"></div>
-    {error && <p class="text-small text-danger" role="alert">{error}</p>}
-    <button type="submit" class="w-full h-9 rounded-md bg-primary text-white hover:bg-primary-hover">로그인</button>
-  </form>
-</body>
+  <head>
+    <meta charset="utf-8" />
+    <title>로그인 · eia-workbench</title>
+    <link rel="stylesheet" href="/src/styles/global.css" />
+    {
+      /* Turnstile loader has no stable SRI — Cloudflare rotates this bundle. CSP + is:inline are the compensating controls. */
+    }
+    <script is:inline src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer
+    ></script>
+  </head>
+  <body class="grid min-h-screen place-items-center bg-bg">
+    <form
+      method="post"
+      class="w-full max-w-sm space-y-4 rounded-md border border-border bg-surface p-6"
+    >
+      <h1 class="text-h1">eia-workbench · v0 파일럿</h1>
+      <p class="text-small text-text-secondary">
+        이 인스턴스의 프로젝트는 인증된 모든 사용자에게 보입니다. 조직별 격리가 필요하면 별도 배포를
+        사용하세요.
+      </p>
+      <label class="block space-y-1">
+        <span class="text-body font-semibold">패스워드 *</span>
+        <input
+          type="password"
+          name="password"
+          required
+          aria-required="true"
+          class="h-9 w-full rounded-md border border-border bg-surface px-3"
+        />
+      </label>
+      <div class="cf-turnstile" data-sitekey={env.TURNSTILE_SITE_KEY} data-theme="light"></div>
+      {
+        error && (
+          <p class="text-small text-danger" role="alert">
+            {error}
+          </p>
+        )
+      }
+      <button
+        type="submit"
+        class="h-9 w-full rounded-md bg-primary text-white hover:bg-primary-hover">로그인</button
+      >
+    </form>
+  </body>
 </html>
