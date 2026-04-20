@@ -1,0 +1,16 @@
+name = "eia-workbench-cleanup"
+main = "workers/cron-cleanup.ts"
+compatibility_date = "2024-09-23"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "eia-workbench-dev"
+database_id = "local-placeholder"
+migrations_dir = "migrations"
+
+[[r2_buckets]]
+binding = "UPLOADS"
+bucket_name = "eia-workbench-uploads-dev"
+
+[triggers]
+crons = ["0 18 * * *"]  # 03:00 KST
