@@ -103,6 +103,15 @@ describe('POST /api/projects/[id]/uploads', () => {
     expect(res.status).toBe(201);
     expect(Object.values(s.uploads).length).toBe(1);
   });
+  it('does not leak r2_key in 201 response body', async () => {
+    const s = memState();
+    const res = await call(fd('a.pdf', PDF, 'application/pdf'), { DB: s.db, UPLOADS: s.r2 });
+    expect(res.status).toBe(201);
+    const body = (await res.json()) as Record<string, unknown>;
+    expect(body).not.toHaveProperty('r2_key');
+    expect(body).toHaveProperty('id');
+    expect(body).toHaveProperty('sha256');
+  });
   it('rejects HWP with 415', async () => {
     const s = memState();
     const res = await call(fd('a.hwp', new Uint8Array([1, 2, 3]), 'application/x-hwp'), { DB: s.db, UPLOADS: s.r2 });

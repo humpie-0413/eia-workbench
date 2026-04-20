@@ -116,7 +116,7 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
     latencyMs: Date.now() - t0,
     jti
   });
-  return Response.json({ id, r2_key: key, sha256: sha }, { status: 201 });
+  return Response.json({ id, sha256: sha }, { status: 201 });
 };
 
 export const GET: APIRoute = async ({ params, locals }) => {
