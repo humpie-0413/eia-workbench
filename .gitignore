@@ -30,3 +30,10 @@ tmp/
 data/samples/private/*
 !data/samples/private/README.md
 uploads/
+
+# Astro / Cloudflare / 테스트 산출물
+.astro/
+.wrangler/
+.dev.vars
+playwright-report/
+test-results/
