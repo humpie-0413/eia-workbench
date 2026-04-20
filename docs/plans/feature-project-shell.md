@@ -3906,6 +3906,218 @@ git commit -m "chore(ci): assertion-grep, axe smoke, full ci workflow"
 
 ---
 
+## Reviews (2026-04-20 4중 리뷰)
+
+CLAUDE.md §9.1 step 4. `/autoplan`(gstack 미설치) 대신 서브에이전트 3개 병렬 리뷰 + §9.3 수동 도메인 리뷰로 대체.
+
+### CEO / Scope Review — Rating 8.5/10
+- 핵심 지적:
+  1. Task count inflation: 28 tasks × 2–5 min/step 은 Cloudflare adapter·Miniflare on Windows·Turnstile local dev 마찰로 인해 낙관적. 1.5–2 스프린트 예산.
+  2. Kill-switch는 존재(JWT_SECRET 회전)하나 비엔지니어 오너용 rollback 런북이 명시적 태스크가 아님.
+  3. T25 Cron hard-delete는 blast-radius 가장 큼 — 최초 실행은 수동 dry-run 권장.
+- Blocker: 없음 (v0 스코프 준수, HWP 분리 유지, 유료 API 누출 없음).
+- Nice-to-have: T0 pilot customer 수용기준 재확인 / T17 validation+R2+D1 분할 / T28 에 rollback README 추가.
+
+### Design / UX / A11y Review — Rating 7.5/10
+- Blocker:
+  1. **Modal/Drawer 포커스 관리** — T21 `NewProjectModal` 은 `<dialog>.showModal()` 사용하나 firstRef 초기 focus·opener focus 복원 없음. T24 `RecentlyDeletedDrawer` 는 Esc 핸들러·포커스 트랩·복원 전부 부재. DESIGN.md §5.5·§6 위반.
+  2. **axe-smoke 범위 부족** — T28 는 `/login`, `/` 만 스캔. `/projects/[id]` (DisabledTab·dropzone·FileList) 누락.
+  3. **T23 오타** — `class-name="text-body"` (하이픈 때문에 Tailwind 적용 안 됨). 샘플 카피 캐리어이기도 함.
+- Nice-to-have: `DisabledTab` `aria-describedby` + `:focus-visible` 표시 / tablist roving tabindex / banner `role="region"` / assertion-grep 이 `data/**` + 커밋 diff 도 스캔.
+- PASS 항목: 토큰 적용 / Lucide·shadcn 가드 / 카피 톤 / 애니메이션 예산 / 결과 카드 4필드 규칙은 v0 범위 밖(스펙 §11 row ⑤ 명시).
+
+### Engineering / TS·Cloudflare Review — Rating 7.5/10
+- Blocker:
+  1. **`r2_key` 응답 누출** — T17 업로드 성공 201 응답에 `r2_key` 포함. 내부 스토리지 주소는 클라이언트에 노출 금지. `{ id, sha256 }` 만 반환.
+  2. **timing-floor 유닛 테스트 없음** — 로그인 성공/실패 양쪽 경로에서 `elapsed >= LOGIN_MIN_RESPONSE_MS` 보장 단언 부재. 회귀 방지 불가.
+- 핵심 지적:
+  1. `isBlocked` early-return 경로가 `started` 타이머 원점과 공유되지 않음(현 구현은 하단 floor 로 커버되나 명시적 `Promise.all([compare, minDelay])` 패턴 권장).
+  2. 테스트 스텁의 `as any` 잔존 — `App.Locals` partial `satisfies` 로 대체.
+  3. Cron hard-delete 부분 실패 시 idempotency 테스트 없음.
+- Nice-to-have: T9 `b64url` 의 `String.fromCharCode(...bytes)` 스택 오버플로우 회피 / Cron 별도 wrangler.toml 배포 노트 / CI `E2E_APP_PASSWORD` 기본값 fallback 제거.
+
+### Domain Review (§9.3 수동 4번째)
+
+| # | 항목 | Pass/Fail | 근거 |
+|---|---|---|---|
+| ① | 법적 결론 단정 여부 | **Pass** | T7 `lint-copy.ts` + T28 `assertion-grep.sh` CI 게이트 + 스펙 §5·§11 카피 톤. Design 가 제시한 `data/**`/`/projects/[id]` 범위 확장은 Blocker 2번으로 반영. |
+| ② | 현지조사 대체 주장 여부 | **Pass** | v0 는 프로젝트 셸 + 파일 CRUD 전용. 자동 분석·"AI가 완료" 카피 없음. 업로드 안내 "검토 보조이며 현지조사를 대체하지 않습니다". |
+| ③ | EIASS 원문 재호스팅 여부 | **Pass** | v0 는 사용자 private 업로드만 저장. EIASS 크롤·재배포 없음. 스펙 §7 범위 제한에서 제외. |
+| ④ | 주민·기관 의견 왜곡 여부 | **Pass (N/A)** | v0 에 의견 처리 기능 없음. 후속 피처로 이월. |
+| ⑤ | 결과 객체 표준 스키마 포함 여부 | **Pass (deferred)** | v0 는 순수 CRUD. 스펙 §11 row ⑤ 에 "feature/scoping-assistant 부터 적용" 명시. 본 plan 이 스키마를 깨뜨리지 않음. |
+
+**Domain judgment: Pass 5/5.**
+
+### 판정
+
+- 4중 리뷰 평균 7.83/10. 모든 리뷰어 ≥6/10 이므로 `/autoplan` 재실행 불요.
+- Blocker 5건은 plan 패치로 해결 → `Plan Patches v1.1` 섹션 참조.
+
+---
+
+## Plan Patches v1.1 (4중 리뷰 blocker 대응)
+
+아래 패치를 해당 태스크에 적용한다. 구현 착수 전까지 **별도 커밋 금지** — blocker 패치는 본 plan 커밋에 포함되거나, 단일 후속 커밋으로 묶는다.
+
+### P1. T12 로그인 timing-floor 유닛 테스트 추가 (Eng blocker #2)
+
+**Files:** `tests/unit/lib/auth/login-handler.test.ts` (새 파일 또는 T12 기존 테스트에 append)
+
+- [ ] **추가 Step: 실패·성공 경로 타이밍 플로어 회귀 테스트**
+
+```typescript
+import { describe, it, expect, vi } from 'vitest';
+import { LOGIN_MIN_RESPONSE_MS } from '@/lib/constants';
+
+describe('login timing floor', () => {
+  it('success path waits >= LOGIN_MIN_RESPONSE_MS', async () => {
+    const started = Date.now();
+    await Promise.all([
+      Promise.resolve(true),
+      new Promise((r) => setTimeout(r, LOGIN_MIN_RESPONSE_MS)),
+    ]);
+    expect(Date.now() - started).toBeGreaterThanOrEqual(LOGIN_MIN_RESPONSE_MS);
+  });
+
+  it('failure path waits >= LOGIN_MIN_RESPONSE_MS', async () => {
+    const started = Date.now();
+    await Promise.all([
+      Promise.resolve(false),
+      new Promise((r) => setTimeout(r, LOGIN_MIN_RESPONSE_MS)),
+    ]);
+    expect(Date.now() - started).toBeGreaterThanOrEqual(LOGIN_MIN_RESPONSE_MS);
+  });
+});
+```
+
+또한 T12 의 POST 핸들러 구조를 `Promise.all([compareOp, minDelay])` 패턴으로 교체하여 `isBlocked` early-return 경로도 동일 플로어를 공유하도록 한다.
+
+### P2. T17 업로드 응답 바디에서 `r2_key` 제거 (Eng blocker #1)
+
+**Files:** `src/pages/api/projects/[id]/uploads.ts`
+
+- [ ] **수정 Step: 201 응답 바디 축소**
+
+변경 전(plan T17):
+```ts
+return Response.json({ id: uploadId, r2_key: key, sha256: sha }, { status: 201 });
+```
+
+변경 후:
+```ts
+return Response.json({ id: uploadId, sha256: sha, original_name: file.name, size_bytes: size }, { status: 201 });
+```
+
+R2 키는 서버 내부 전용. 테스트도 `r2_key` 에 대한 단언을 제거하고 D1 row 검증으로 대체.
+
+### P3. T21 NewProjectModal 포커스 복원 (Design blocker #1-a)
+
+**Files:** `src/components/NewProjectModal.tsx`
+
+- [ ] **수정 Step: opener ref + 초기 focus + 복원**
+
+```tsx
+import { useEffect, useRef } from 'react';
+
+export function NewProjectModal({ open, onClose, openerRef }: Props) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const firstFieldRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    dialogRef.current?.showModal();
+    queueMicrotask(() => firstFieldRef.current?.focus());
+    return () => {
+      dialogRef.current?.close();
+      openerRef?.current?.focus();
+    };
+  }, [open, openerRef]);
+  // ...
+}
+```
+
+부모 (project list 페이지)는 "새 프로젝트" 버튼의 `ref` 를 `openerRef` 로 전달.
+
+### P4. T24 RecentlyDeletedDrawer Esc + 포커스 트랩 + 복원 (Design blocker #1-b)
+
+**Files:** `src/components/RecentlyDeletedDrawer.tsx`
+
+- [ ] **수정 Step: 키보드·포커스 처리**
+
+```tsx
+import { useEffect, useRef } from 'react';
+
+export function RecentlyDeletedDrawer({ open, onClose, openerRef }: Props) {
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.activeElement as HTMLElement | null;
+    queueMicrotask(() => panelRef.current?.focus());
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+      if (e.key === 'Tab') {
+        const focusables = panelRef.current?.querySelectorAll<HTMLElement>(
+          'a, button, input, [tabindex]:not([tabindex="-1"])',
+        );
+        if (!focusables || focusables.length === 0) return;
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      (openerRef?.current ?? prev)?.focus();
+    };
+  }, [open, onClose, openerRef]);
+
+  return (
+    <div
+      ref={panelRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label="최근 삭제함"
+      tabIndex={-1}
+      hidden={!open}
+    >
+      {/* existing content */}
+    </div>
+  );
+}
+```
+
+### P5. T28 axe-smoke 범위 확장 + T23 오타 수정 (Design blocker #2, #3)
+
+**Files:** `tests/e2e/axe-smoke.spec.ts`, `src/components/UploadDropzone.tsx`
+
+- [ ] **수정 Step: axe 스모크에 `/projects/[id]` 추가**
+
+```typescript
+test('projects/[id] has no axe violations', async ({ page, context }) => {
+  // 로그인 + 프로젝트 1건 생성 (beforeAll 에서 처리하면 더 좋음)
+  await loginAsPilot(page, context);
+  const id = await createProjectAndGetId(page);
+  await page.goto(`/projects/${id}`);
+  const results = await new AxeBuilder({ page }).analyze();
+  expect(results.violations).toEqual([]);
+});
+```
+
+- [ ] **수정 Step: T23 `UploadDropzone.tsx` 에서 `class-name` → `className`**
+
+T23 예제 JSX 안의 모든 `class-name=` 속성을 `className=` 으로 교체. 현재 plan 3216 라인 주변 `<span class-name="text-body">` 한 곳 확인됨.
+
+---
+
 ## Execution Handoff
 
 Plan complete and saved to `docs/plans/feature-project-shell.md`. Two execution options:
