@@ -1,7 +1,7 @@
 # progress.md
 
 ## 현재 목표
-`feature/project-shell` **구현·리뷰 완료** (워크트리 `../eia-workbench-feature-project-shell`, 40 커밋, 104/104 유닛 테스트, typecheck/lint/prettier/assertion-grep clean, Opus 최종 리뷰 통과·P2 `r2_key` 누출 수정 반영) → PR 생성(수동 배포).
+`feature/project-shell` **PR #1 CI 실패 → a11y landmark 수정 중**. 로컬 E2E 재현 후 commits a–h 진행 완료, CI 재실행 대기. 다음은 CI 그린 → `/checkpoint` → 수동 머지 → 수동 배포.
 
 ## 완료
 - 저장소 초기화 (`git init`, main 브랜치).
@@ -24,7 +24,8 @@
 - Claude Code CLI + gstack + Superpowers 설치·확인.
 
 ## 진행 중
-- PR 생성 대기. `docs/reviews/feature-project-shell.md` 리뷰 노트 확정. `superpowers:finishing-a-development-branch`로 최종 체크리스트 + PR 생성.
+- `feature/project-shell` CI fix 커밋 a–h 푸시 완료 (워크트리 `../eia-workbench-feature-project-shell`, PR #1 자동 갱신). 로컬에서 `landmark-one-main` + `region` (moderate) 재현 확정 후 AuthLayout 신설, `<aside>` landmark 래퍼, tablist `aria-label`, 정적 랜드마크 가드, axe-smoke impact floor 상향, DESIGN §6.1 A11y 규칙 추가.
+- CI 재실행 결과 대기. 그린이면 `/checkpoint` → 수동 머지.
 
 ## 최근 완료 (2026-04-20)
 - `feature/project-shell` Office Hours Q&A 6세트 + 보안 리뷰 12건 완료.
@@ -69,3 +70,5 @@
 - **범위 팽창**: 기능 욕심 생기면 `docs/plans/` 새 계획서부터.
 - **Astro + CF 어댑터**: D1/R2 바인딩 호환 테스트는 첫 plan 에 편입. 치명적 이슈 시 ADR-0001 파기 조건.
 - **토큰 소모**: `/autoplan` 은 기능당 1회, 결과는 plan 에 캐시.
+- **AI가 비로그인/보조 페이지에서 시맨틱 랜드마크 빠뜨리는 패턴** (2026-04-21 PR #1 CI 실패 회고): 로그인 페이지를 layout 없이 bare `<html>/<body>` 로 만들고, `role="status"` 배너를 landmark 밖에 두는 실수가 반복될 수 있다. 가드: (a) `src/layouts/{App,Auth}Layout.astro` 로 `<main>` 강제, (b) `src/lib/check-landmarks.ts` 정적 유닛 테스트로 즉시 차단, (c) axe-smoke E2E `includedImpacts: ['moderate','serious','critical']` 고정, (d) DESIGN 문서 §6.1 에 규칙 명문화. 다음 기능 시작 시 이 네 가드가 살아있는지 먼저 확인할 것.
+- **로컬 "E2E pass" 신뢰성**: 병합 전 리뷰 노트의 "E2E passed" 가 실제로는 Playwright Chromium 바이너리 자체가 미설치이거나 D1 migrations 미적용인 상태에서의 허위였음 (2026-04-21 확인). 가드: `scripts/check-e2e-prereqs.sh` + README "로컬에서 E2E 돌리기" 섹션. 머지 직전에는 반드시 스크립트가 FAIL=0 인 상태에서 `npm run test:e2e` 가 실제로 통과한 출력을 직접 확인한다.
