@@ -10,6 +10,10 @@
 
 ---
 
+## 2026-04-20 — feature/project-shell 구현 완료 + 최종 리뷰
+- 완료: `subagent-driven-development`로 T1–T28 (+ Housekeeping #39 eslint globals) 전체 구현. 워크트리 `../eia-workbench-feature-project-shell`, 40 커밋(+1 P2 fix), 104/104 유닛 테스트, typecheck/lint/prettier/assertion-grep clean. 최종 리뷰(Opus, id `a4176f43bee12289c`)가 P2 한 건 지적 → `POST /api/projects/[id]/uploads` 201 응답에서 `r2_key` 제거 + 누출 방지 테스트 추가. `docs/reviews/feature-project-shell.md` 리뷰 노트 작성.
+- 다음: PR 생성(CLAUDE.md §9.5: `/ship` PR-only, 자동 배포 금지). 병합 후 Housekeeping #40(kostat) / #41(route hardening) / cron R2/D1 원자성 / owner_id v1 / HWP v0.5 이슈화.
+
 ## 2026-04-20 — feature/project-shell Implementation Plan 커밋
 - 완료: `writing-plans` 스킬로 `docs/plans/feature-project-shell.md` 작성·커밋(`b07e467`, 28 TDD tasks / 3916 lines). 파일 구조 맵 + T1–T28(스캐폴드→auth→KOSTAT→projects/uploads API→UI→Cron→E2E→CI) + 자체 리뷰 체크리스트 + 실행 핸드오프.
 - 다음: `/autoplan` 삼중 리뷰 → §9.3 도메인 리뷰 수동 → 승인 시 워크트리 `../eia-workbench-feature-project-shell` 생성 → `subagent-driven-development` 구현.

@@ -1,7 +1,7 @@
 # progress.md
 
 ## 현재 목표
-`feature/project-shell` plan 커밋 완료(`b07e467`, 28 tasks, 3916 lines) → 다음은 `/autoplan` 삼중 리뷰 + 도메인 리뷰(§9.3) → 워크트리 → 구현.
+`feature/project-shell` **구현·리뷰 완료** (워크트리 `../eia-workbench-feature-project-shell`, 40 커밋, 104/104 유닛 테스트, typecheck/lint/prettier/assertion-grep clean, Opus 최종 리뷰 통과·P2 `r2_key` 누출 수정 반영) → PR 생성(수동 배포).
 
 ## 완료
 - 저장소 초기화 (`git init`, main 브랜치).
@@ -24,7 +24,7 @@
 - Claude Code CLI + gstack + Superpowers 설치·확인.
 
 ## 진행 중
-- `/autoplan` 삼중 리뷰 + 도메인 리뷰(§9.3) 대기. 입력: `docs/plans/feature-project-shell.md` (28 tasks).
+- PR 생성 대기. `docs/reviews/feature-project-shell.md` 리뷰 노트 확정. `superpowers:finishing-a-development-branch`로 최종 체크리스트 + PR 생성.
 
 ## 최근 완료 (2026-04-20)
 - `feature/project-shell` Office Hours Q&A 6세트 + 보안 리뷰 12건 완료.
@@ -41,12 +41,11 @@
   - 보안 12건: 브루트포스 방어, magic bytes 검증, CSRF Origin, CSP, 로깅 PII 제외, Cron 안전가드 등 모두 설계 반영.
 
 ## 다음 작업
-1. `writing-plans`로 `docs/plans/feature-project-shell.md` 작성 (2–5분 단위 태스크, 확정 설계 §3–§10 커버).
-2. `/autoplan` → 도메인 리뷰 (4중 리뷰, `prompts/gs_sp/40_plan_review.md`).
-3. 승인 시 워크트리 `../eia-workbench-feature-project-shell` 생성 → 구현.
-4. 착수 전 공개 샘플 3개 (`data/samples/public/`) 조달.
-5. `/design-consultation` 1회 돌려 `DESIGN.md` v1 확정(구현 시작 전).
-6. project-shell 마감 직후: `docs/design/adr-0002-hwp-support.md` + `docs/plans/feature-hwp-ingest.md` (v0.5).
+1. `superpowers:finishing-a-development-branch` → PR 생성 (`gh pr create`). CLAUDE.md §9.5: PR까지만, 자동 배포 금지.
+2. 머지 후 Cloudflare Pages + `workers/cleanup.wrangler.toml` 수동 배포(별도 커맨드). `.dev.vars`·CI secret(`E2E_APP_PASSWORD`, Turnstile 테스트키) 구성.
+3. 병합 후 이슈화: Housekeeping #40(kostat 경화), #41(route 일관화), cron R2/D1 원자성, owner_id v1 스코프.
+4. 공개 샘플 3개 조달(`data/samples/public/`) — 첫 배포 후 QA용.
+5. `docs/design/adr-0002-hwp-support.md` + `docs/plans/feature-hwp-ingest.md` (v0.5, `feature/hwp-ingest` 브랜치).
 
 ## 이슈/막힌 점
 - 없음. (공개 샘플 PDF/DOCX 3종 조달이 QA 단계 선행 조건)
