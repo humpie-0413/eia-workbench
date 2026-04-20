@@ -12,8 +12,13 @@ function startsWith(haystack: Uint8Array, needle: Uint8Array): boolean {
 }
 
 function hasEntry(zip: Uint8Array, name: string): boolean {
+  // Bound the scan. A well-formed DOCX places [Content_Types].xml
+  // in the first local file header (offset 0). 64 KiB is ample for
+  // any DOCX; unbounded scans on attacker-crafted 30MB payloads are a CPU DoS.
+  const SCAN_CAP = 64 * 1024;
+  const limit = Math.min(zip.length, SCAN_CAP);
   const target = new TextEncoder().encode(name);
-  outer: for (let i = 0; i + 30 + target.length < zip.length; i++) {
+  outer: for (let i = 0; i + 30 + target.length <= limit; i++) {
     if (zip[i] !== 0x50 || zip[i + 1] !== 0x4b || zip[i + 2] !== 0x03 || zip[i + 3] !== 0x04)
       continue;
     const lenLo = zip[i + 26];

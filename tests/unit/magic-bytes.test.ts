@@ -38,6 +38,39 @@ describe('validateMagicBytes', () => {
   it('rejects invalid UTF-8 for text/plain', async () => {
     expect(await validateMagicBytes(new Uint8Array([0xff, 0xfe, 0xfd]), 'text/plain')).toBe(false);
   });
+  it('accepts an exact-fit minimal DOCX (zero trailing content)', async () => {
+    // Single [Content_Types].xml entry, zero-length content body.
+    // Exercises the off-by-one boundary: zip.length === 30 + target.length.
+    const name = '[Content_Types].xml';
+    const fname = new TextEncoder().encode(name);
+    const buf = new Uint8Array(30 + fname.length);
+    buf.set([0x50, 0x4b, 0x03, 0x04], 0);
+    new DataView(buf.buffer).setUint16(26, fname.length, true);
+    buf.set(fname, 30);
+    expect(
+      await validateMagicBytes(buf, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+    ).toBe(true);
+  });
+
+  it('rejects a 30MB DOCX-mime payload quickly (DoS bound)', async () => {
+    // 30 MiB of PK\x03\x04-like garbage without [Content_Types].xml.
+    // Tests that hasEntry bounds the scan so this completes within a reasonable CPU budget.
+    const big = new Uint8Array(30 * 1024 * 1024);
+    // Sprinkle fake PK headers every 200 bytes to stress the outer loop.
+    for (let i = 0; i + 4 < big.length; i += 200) {
+      big.set([0x50, 0x4b, 0x03, 0x04], i);
+    }
+    const t0 = Date.now();
+    const result = await validateMagicBytes(
+      big,
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    );
+    const elapsed = Date.now() - t0;
+    expect(result).toBe(false);
+    // Bound is 64 KiB = 327 iterations of the 200-byte stride. Should complete
+    // in well under 50ms even on a slow CI runner. Allow 250ms for safety.
+    expect(elapsed).toBeLessThan(250);
+  });
 });
 
 async function makeMinimalDocx(): Promise<Uint8Array> {
