@@ -1,7 +1,7 @@
 # progress.md
 
 ## 현재 목표
-`feature/project-shell` 설계 확정 완료 → `writing-plans`로 `docs/plans/feature-project-shell.md` 작성.
+`feature/project-shell` plan 커밋 완료(`b07e467`, 28 tasks, 3916 lines) → 다음은 `/autoplan` 삼중 리뷰 + 도메인 리뷰(§9.3) → 워크트리 → 구현.
 
 ## 완료
 - 저장소 초기화 (`git init`, main 브랜치).
@@ -24,7 +24,7 @@
 - Claude Code CLI + gstack + Superpowers 설치·확인.
 
 ## 진행 중
-- `writing-plans` 스킬 대기. 입력: 확정된 `docs/design/feature-project-shell.md` v1.
+- `/autoplan` 삼중 리뷰 + 도메인 리뷰(§9.3) 대기. 입력: `docs/plans/feature-project-shell.md` (28 tasks).
 
 ## 최근 완료 (2026-04-20)
 - `feature/project-shell` Office Hours Q&A 6세트 + 보안 리뷰 12건 완료.

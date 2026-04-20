@@ -10,6 +10,10 @@
 
 ---
 
+## 2026-04-20 — feature/project-shell Implementation Plan 커밋
+- 완료: `writing-plans` 스킬로 `docs/plans/feature-project-shell.md` 작성·커밋(`b07e467`, 28 TDD tasks / 3916 lines). 파일 구조 맵 + T1–T28(스캐폴드→auth→KOSTAT→projects/uploads API→UI→Cron→E2E→CI) + 자체 리뷰 체크리스트 + 실행 핸드오프.
+- 다음: `/autoplan` 삼중 리뷰 → §9.3 도메인 리뷰 수동 → 승인 시 워크트리 `../eia-workbench-feature-project-shell` 생성 → `subagent-driven-development` 구현.
+
 ## 2026-04-20 — feature/project-shell Office Hours 확정
 - 완료: Q&A 6세트(auth / 업로드 / 입지 / HWP / 테스트 / 마무리 UX 3건) + 보안 리뷰 12건. `docs/design/feature-project-shell.md` v1 확정 (§10 보안 설계, §11 도메인 위험 갱신). `progress.md` 갱신. HWP 지원은 v0.5 `feature/hwp-ingest` + `ADR-0002`로 분리 결정.
 - 다음: `writing-plans`로 `docs/plans/feature-project-shell.md` 작성 → `/autoplan` 삼중 리뷰 + 도메인 리뷰 → 워크트리 생성 → 구현.
