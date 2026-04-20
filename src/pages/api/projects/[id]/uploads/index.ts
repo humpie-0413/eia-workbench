@@ -66,18 +66,24 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
 
   const id = newUploadId();
   const key = buildR2Key(projectId);
-  await env.UPLOADS.put(key, bytes.buffer as ArrayBuffer);
+  let r2Uploaded = false;
   try {
+    await env.UPLOADS.put(key, bytes.buffer as ArrayBuffer);
+    r2Uploaded = true;
     await env.DB.prepare(
       `INSERT INTO uploads (id, project_id, r2_key, sha256, original_name, mime, size_bytes)
        VALUES (?, ?, ?, ?, ?, ?, ?)`
     ).bind(id, projectId, key, sha, meta.data.original_name, meta.data.mime, meta.data.size_bytes).run();
   } catch (err) {
-    // Compensate if D1 insert fails (e.g. unique-index race).
-    await env.UPLOADS.delete(key).catch(() => {});
+    if (r2Uploaded) {
+      await env.UPLOADS.delete(key).catch(() => {});
+    }
     logger.error({
-      route: '/api/projects/[id]/uploads', method: 'POST', status: 500,
-      latencyMs: Date.now() - t0, jti,
+      route: '/api/projects/[id]/uploads',
+      method: 'POST',
+      status: 500,
+      latencyMs: Date.now() - t0,
+      jti,
       error: err instanceof Error ? err : new Error(String(err))
     });
     return new Response('internal', { status: 500 });
@@ -94,6 +100,14 @@ export const GET: APIRoute = async ({ params, locals }) => {
 
   const projectId = params.id;
   if (projectId === undefined) return new Response('bad request', { status: 400 });
+
+  const project = await env.DB.prepare(
+    `SELECT id FROM projects WHERE id = ? AND deleted_at IS NULL`
+  ).bind(projectId).first<{ id: string }>();
+  if (!project) {
+    logger.info({ route: '/api/projects/[id]/uploads', method: 'GET', status: 404, latencyMs: Date.now() - t0, jti });
+    return new Response('project not found', { status: 404 });
+  }
 
   const { results } = await env.DB.prepare(
     `SELECT id, original_name, mime, size_bytes, created_at FROM uploads

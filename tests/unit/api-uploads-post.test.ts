@@ -44,6 +44,14 @@ function memState() {
                 return (found as unknown) as T | null | undefined;
               }
               return null;
+            },
+            async all<T>(): Promise<{ results: T[] }> {
+              if (sql.includes('FROM uploads') && sql.includes('ORDER BY created_at DESC')) {
+                const pid = String(args[0]);
+                const rows = Object.values(uploads).filter((u) => u.project_id === pid && !u.deleted_at);
+                return { results: rows as unknown as T[] };
+              }
+              return { results: [] };
             }
           };
         }
@@ -62,6 +70,17 @@ async function call(form: FormData, env: { DB: D1Database; UPLOADS: R2Bucket }, 
   return POST({
     request: new Request(`http://localhost:3000/api/projects/${projectId}/uploads`, {
       method: 'POST', body: form, headers: { origin: 'http://localhost:3000' }
+    }),
+    params: { id: projectId },
+    locals: { runtime: { env }, session: { jti: 'j' } }
+  } as unknown as APIContext);
+}
+
+async function callGet(env: { DB: D1Database; UPLOADS: R2Bucket }, projectId = 'p1') {
+  const { GET } = await import('@/pages/api/projects/[id]/uploads/index');
+  return GET({
+    request: new Request(`http://localhost:3000/api/projects/${projectId}/uploads`, {
+      method: 'GET', headers: { origin: 'http://localhost:3000' }
     }),
     params: { id: projectId },
     locals: { runtime: { env }, session: { jti: 'j' } }
@@ -123,6 +142,24 @@ describe('POST /api/projects/[id]/uploads', () => {
   it('404 when project does not exist', async () => {
     const s = memState();
     const res = await call(fd('a.pdf', PDF, 'application/pdf'), { DB: s.db, UPLOADS: s.r2 }, 'zzz');
+    expect(res.status).toBe(404);
+  });
+  it('returns 500 when R2 put fails', async () => {
+    const s = memState();
+    const r2Fail = {
+      async put() { throw new Error('R2 unavailable'); },
+      async delete() { return; }
+    } as unknown as R2Bucket;
+    const res = await call(fd('a.pdf', PDF, 'application/pdf'), { DB: s.db, UPLOADS: r2Fail });
+    expect(res.status).toBe(500);
+    expect(Object.values(s.uploads).length).toBe(0);
+  });
+});
+
+describe('GET /api/projects/[id]/uploads', () => {
+  it('404 when project does not exist', async () => {
+    const s = memState();
+    const res = await callGet({ DB: s.db, UPLOADS: s.r2 }, 'zzz');
     expect(res.status).toBe(404);
   });
 });
