@@ -1,6 +1,5 @@
 import { test, expect } from '@playwright/test';
-
-const PASSWORD = process.env['E2E_APP_PASSWORD'] ?? 'change-me-long-random';
+import { loginViaUi } from './helpers/login';
 
 // NOTE: This test requires a running dev server AND:
 //   - .dev.vars TURNSTILE_SECRET_KEY set to Cloudflare test secret (1x0000000000000000000000000000000AA)
@@ -9,10 +8,7 @@ const PASSWORD = process.env['E2E_APP_PASSWORD'] ?? 'change-me-long-random';
 //   - Fresh local D1 (npm run db:migrate:local) — this test does NOT clean up after itself.
 
 test.beforeEach(async ({ page }) => {
-  await page.goto('/login');
-  await page.fill('input[name="password"]', PASSWORD);
-  await page.click('button[type="submit"]');
-  await page.waitForURL('/');
+  await loginViaUi(page);
 });
 
 // DEVIATION from plan spec §T27:

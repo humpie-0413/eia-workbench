@@ -1,7 +1,6 @@
-import { test, type Page } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import { injectAxe, checkA11y } from 'axe-playwright';
-
-const PASSWORD = process.env['E2E_APP_PASSWORD'] ?? 'change-me-long-random';
+import { loginViaUi } from './helpers/login';
 
 // Turnstile iframe is third-party (challenges.cloudflare.com); we cannot fix
 // a11y issues inside it, so exclude the widget's iframe and any element axe
@@ -32,13 +31,6 @@ async function waitSettled(page: Page): Promise<void> {
   await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => undefined);
 }
 
-async function login(page: Page): Promise<void> {
-  await page.goto('/login');
-  await page.fill('input[name="password"]', PASSWORD);
-  await page.click('button[type="submit"]');
-  await page.waitForURL('/');
-}
-
 test('login page passes axe smoke', async ({ page }) => {
   await page.goto('/login');
   await waitSettled(page);
@@ -47,19 +39,27 @@ test('login page passes axe smoke', async ({ page }) => {
 });
 
 test('project list passes axe smoke', async ({ page }) => {
-  await login(page);
+  await loginViaUi(page);
   await waitSettled(page);
   await injectAxe(page);
   await checkA11y(page, AXE_CONTEXT, AXE_OPTIONS);
 });
 
 test('project detail page passes axe smoke', async ({ page }) => {
-  await login(page);
+  await loginViaUi(page);
   await waitSettled(page);
 
-  // Create a project so we can scan /projects/[id]
-  await page.getByRole('button', { name: '새 프로젝트' }).click();
-  await page.fill('input[name="name"]', 'axe smoke test');
+  // Create a project so we can scan /projects/[id].
+  // NewProjectModal is a React island (client:load); the first click on "새
+  // 프로젝트" can land before hydration finishes, leaving the <dialog> closed.
+  // Retry the click until the dialog's name input becomes visible, then fill.
+  const openButton = page.getByRole('button', { name: '새 프로젝트' });
+  const nameInput = page.locator('dialog[open] input[name="name"]');
+  await expect(async () => {
+    await openButton.click();
+    await expect(nameInput).toBeVisible({ timeout: 1000 });
+  }).toPass({ timeout: 15_000 });
+  await nameInput.fill('axe smoke test');
   await page.getByRole('button', { name: '만들기' }).click();
   await page.waitForURL(/\/projects\/[A-Za-z0-9_-]{12}/);
   await waitSettled(page);

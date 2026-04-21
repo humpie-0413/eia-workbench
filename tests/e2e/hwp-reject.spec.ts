@@ -1,6 +1,5 @@
 import { test, expect } from '@playwright/test';
-
-const PASSWORD = process.env['E2E_APP_PASSWORD'] ?? 'change-me-long-random';
+import { loginViaUi } from './helpers/login';
 
 // NOTE: This test requires a running dev server AND:
 //   - .dev.vars TURNSTILE_SECRET_KEY set to Cloudflare test secret (1x0000000000000000000000000000000AA)
@@ -9,10 +8,7 @@ const PASSWORD = process.env['E2E_APP_PASSWORD'] ?? 'change-me-long-random';
 //   - Fresh local D1 (npm run db:migrate:local) — this test does NOT clean up after itself.
 
 test.beforeEach(async ({ page }) => {
-  await page.goto('/login');
-  await page.fill('input[name="password"]', PASSWORD);
-  await page.click('button[type="submit"]');
-  await page.waitForURL('/');
+  await loginViaUi(page);
 });
 
 // DEVIATION from plan spec §T27:
@@ -32,8 +28,9 @@ test('drop zone rejects HWP with Hancom guidance', async ({ page }) => {
   await page.getByRole('button', { name: '만들기' }).click();
   await page.waitForURL(/\/projects\/[A-Za-z0-9_-]{12}/);
 
-  // Static guidance text is always visible in the dropzone paragraph
-  await expect(page.getByText(/한컴오피스에서 PDF로 저장 후 업로드해 주세요/)).toBeVisible();
+  // Static guidance text is always visible in the dropzone paragraph.
+  // Use .first() to scope to the <p> before any toast appears with overlapping text.
+  await expect(page.getByText(/한컴오피스에서 PDF로 저장 후 업로드해 주세요/).first()).toBeVisible();
 
   // Hancom link — href and accessible name match the actual UploadDropzone
   // (spec expected href 'https://www.hancomoffice.com/' and name /온라인 변환 안내/ — both correct)
@@ -59,6 +56,7 @@ test('drop zone rejects HWP with Hancom guidance', async ({ page }) => {
       .filter({ hasText: /HWP는 한컴오피스에서 PDF로 저장 후 업로드해 주세요/ })
   ).toBeVisible();
 
-  // Static guidance text remains visible after rejection (dropzone state unchanged)
-  await expect(page.getByText(/한컴오피스에서 PDF로 저장 후 업로드해 주세요/)).toBeVisible();
+  // Static guidance text remains visible after rejection (dropzone state unchanged).
+  // Post-rejection the toast span ALSO contains the same text; .first() targets the static <p>.
+  await expect(page.getByText(/한컴오피스에서 PDF로 저장 후 업로드해 주세요/).first()).toBeVisible();
 });

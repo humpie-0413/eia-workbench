@@ -5,9 +5,19 @@ import { verifyJwt } from '@/lib/auth/jwt';
 const PUBLIC_PATHS = new Set(['/login', '/logout']);
 const MUTATING = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
+// script-src notes:
+// - 'unsafe-inline' is required for Astro island hydration: Astro emits a small
+//   inline bootstrap per client:load/client:idle island to kick off hydration.
+//   Without it, React islands (NewProjectModal, Toast, RecentlyDeletedDrawer)
+//   never attach their event handlers and the app is effectively read-only.
+//   Migration target for v1: nonce-based CSP via Astro experimental.csp, which
+//   would let us drop 'unsafe-inline' while keeping object-src/frame-ancestors
+//   hardened. Tracked in docs/design/feature-project-shell.md §10.4.
+// - https://challenges.cloudflare.com is required for the Turnstile loader
+//   (api.js), which is an external script that cannot be inlined.
 const SECURITY_HEADERS: Record<string, string> = {
   'content-security-policy':
-    "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'",
+    "default-src 'self'; script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'",
   'x-content-type-options': 'nosniff',
   'x-frame-options': 'DENY',
   'referrer-policy': 'strict-origin-when-cross-origin'
