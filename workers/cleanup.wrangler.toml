@@ -1,5 +1,8 @@
 name = "eia-workbench-cleanup"
-main = "workers/cron-cleanup.ts"
+# main is resolved relative to this config file's location (workers/).
+# DO NOT prefix with "workers/" — wrangler would look for workers/workers/cron-cleanup.ts
+# and fail with "entry-point file ... was not found" (Windows: amplified by libuv crash).
+main = "cron-cleanup.ts"
 compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
 

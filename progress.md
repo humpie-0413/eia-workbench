@@ -78,6 +78,7 @@ v0 Cloudflare 배포 완료. 다음 세션에서 `feature/design-system` 착수 
 10. `docs/issues/05-vars-precedence-docs.md` — vars precedence docs
 11. `docs/issues/06-byte-identical-deploy-curl-verify.md` — `public/.build-version` + curl verify
 12. `docs/issues/07-plan-cf-kv-annotation.md` — 완료됨, 이슈는 로그 목적
+13. `docs/issues/08-cleanup-worker-local-verify.md` — cleanup worker 로컬 드라이런 CI step (P1)
 
 ## 이슈/막힌 점
 - 없음. (공개 샘플 PDF/DOCX 3종 조달이 QA 단계 선행 조건)
