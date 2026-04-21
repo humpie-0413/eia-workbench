@@ -41,5 +41,15 @@ jobs:
       - name: e2e
         env:
           E2E_APP_PASSWORD: ${{ secrets.E2E_APP_PASSWORD || 'change-me-long-random' }}
-        run: npm run test:e2e
+        run: npm run test:e2e -- --reporter=list
+      - name: upload playwright artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ github.sha }}
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+          if-no-files-found: warn
       - run: npm run build
