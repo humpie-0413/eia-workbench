@@ -10,6 +10,11 @@
 
 ---
 
+## 2026-04-21 — PR #1 CI 인프라 fix commits k + l + m (.dev.vars seed + trigger cleanup + artifact upload)
+- 완료: 로컬 E2E 녹색인데 CI 는 계속 레드였던 근인 확정 → CI 에 `.dev.vars` 가 없어 Astro dev 서버가 `APP_PASSWORD` / `TURNSTILE_*` / `JWT_SECRET` 없이 기동, 로그인 페이지가 `data-sitekey=""` 로 렌더되어 Turnstile 토큰 미생성, 모든 E2E 로그인이 조용히 실패. 해결 3 커밋: `f270da8` `fix(ci): seed .dev.vars for E2E before running tests` — Cloudflare 공식 always-pass Turnstile 테스트키 + throwaway `JWT_SECRET` 으로 `.dev.vars` 를 e2e 직전에 시드. `33c75fd` `ci: one run per commit` — `on: [push, pull_request]` 가 PR 브랜치당 2 런을 독립 VM 에서 병렬 실행해 같은 커밋에 녹색/적색이 섞이는 flake 시그널을 `push: branches:[main]` + `pull_request` 로 교체. `abc9955` `ci: upload Playwright report on E2E failure` — `actions/upload-artifact@v4` `if: failure()` 로 `playwright-report/` + `test-results/` 를 7일 보관 아티팩트로. admin-only step logs (`/actions/jobs/{id}/logs` 403) 우회. 3 커밋 푸시 후 CI `verify | completed | success` 단일 런 그린. PR #1 mergeable=true, head=abc9955.
+- 관찰된 CI flake: 33c75fd 단일 런이 한 번 레드 → abc9955 에서 동일 코드가 그린. 추정 원인: Astro dev 콜드부트 + Playwright chromium 첫 기동 + `.dev.vars` 로드 타이밍 경합. artifact upload 가 들어갔으므로 재발 시 `playwright-report/` 다운로드로 즉시 근인 확인 가능.
+- 다음: 사용자 수동 머지 (CLAUDE.md §9.5: PR 까지만, 자동 배포 금지) → Housekeeping #40(kostat) / #41(route hardening) / cron R2/D1 원자성 / owner_id v1 / HWP v0.5 이슈화 → Cloudflare Pages + `workers/cleanup.wrangler.toml` 수동 배포.
+
 ## 2026-04-21 — PR #1 CI fix commits i + j (CSP + DisabledTab a11y + primary contrast)
 - 완료: 로컬 E2E 재현으로 CI 실패의 진짜 근인 2개 확정 — (1) `script-src 'self'` 이 Turnstile 외부 `api.js` 와 Astro island 인라인 부트스트랩을 동시 차단, (2) `DisabledTab` 의 `<span>` 래퍼 + role 없는 `<button>` 이 `aria-required-children` 을 위반 + `text-primary #1F6FEB` 가 WCAG AA 4.21:1 로 미달. 해결: commit `7233a7b` — middleware CSP `'unsafe-inline' https://challenges.cloudflare.com` + `frame-src` 허용, 공용 `loginViaUi` 헬퍼로 Turnstile 토큰 주입 대기 후 submit, axe-smoke 에 island hydration 재시도 루프, crud/hwp 테스트 strict-mode locator 정리. commit `61185f1` — DisabledTab 을 flat `<button role="tab" aria-selected="false" aria-disabled="true" title={tooltip}>` 로 평탄화, `--c-primary` `#1456C5` (6.17:1) + `--c-primary-hover` `#0E3E8C`. 로컬 `npm run test:e2e` 6/6 그린. `docs/design/feature-project-shell.md` §10.4.1 에 `'unsafe-inline'` 트레이드오프 + nonce CSP v1 마이그레이션 목표 기록, progress.md 리스크에 CSP + 내부 semantics 패턴 2건 추가.
 - 다음: CI 그린 확인 → `/checkpoint` → 사용자 수동 머지 → 수동 배포.

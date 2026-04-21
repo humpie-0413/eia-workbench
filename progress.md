@@ -1,7 +1,7 @@
 # progress.md
 
 ## 현재 목표
-`feature/project-shell` **PR #1 CI fix commits i+j 푸시 완료** (2026-04-21). 로컬 E2E 6/6 그린. CI 그린 확인 → `/checkpoint` → 수동 머지 → 수동 배포.
+`feature/project-shell` **PR #1 CI 인프라 fix commits k+l+m 푸시 완료** (2026-04-21). `.dev.vars` seed + trigger cleanup + artifact upload. 단일 CI 런 그린 확인 (head `abc9955`). → 사용자 수동 머지 → 수동 배포.
 
 ## 완료
 - 저장소 초기화 (`git init`, main 브랜치).
@@ -24,9 +24,12 @@
 - Claude Code CLI + gstack + Superpowers 설치·확인.
 
 ## 진행 중
-- `feature/project-shell` CI fix commits a–h (landmark 구조) + i (CSP + E2E login helper) + j (DisabledTab role=tab + WCAG AA primary) 푸시 완료. 로컬 E2E 6/6 그린 (axe-smoke 3, crud-happy, hwp-reject, quota-exceeded). CI 재실행 결과 대기 → `/checkpoint`.
+- `feature/project-shell` CI fix commits a–h (landmark 구조) + i (CSP + E2E login helper) + j (DisabledTab role=tab + WCAG AA primary) + **k/l/m (CI 인프라: `.dev.vars` seed + 트리거 cleanup + Playwright artifact upload)** 푸시 완료. CI 단일 런 `verify: success`, PR #1 mergeable=true, head=abc9955. `/checkpoint` → 사용자 수동 머지 대기.
 - commit i 핵심: `script-src 'self'` 이 Turnstile 스크립트와 Astro island 부트스트랩을 둘 다 차단하고 있었음. 이전 "E2E passed" 가 허위였던 두 번째 근인. DESIGN §10.4.1 에 `'unsafe-inline'` 트레이드오프 기록.
 - commit j 핵심: DisabledTab 을 `<span>` 래퍼 제거 + `<button role="tab" aria-selected="false" aria-disabled="true" title={tooltip}>` 로 평탄화. `--c-primary #1F6FEB` (4.21:1) → `#1456C5` (6.17:1) 로 어둡게 조정 (WCAG AA 4.5:1 충족).
+- commit k 핵심: CI 에 `.dev.vars` 부재 → Astro dev 서버가 `APP_PASSWORD` / `TURNSTILE_*` / `JWT_SECRET` 없이 기동 → 로그인 페이지 `data-sitekey=""` → 모든 E2E 로그인 조용히 실패. Cloudflare 공식 always-pass 테스트키로 `.dev.vars` 를 e2e 직전에 시드.
+- commit l 핵심: `on: [push, pull_request]` 가 PR 브랜치당 2 런을 병렬로 띄워 같은 커밋에 녹색/적색이 동시에 찍히는 flake 시그널 원인. `push: branches:[main]` + `pull_request` 로 교체해 PR 커밋당 1 런으로 고정.
+- commit m 핵심: `/actions/jobs/{id}/logs` 는 admin 권한 필요로 외부에서 CI 실패 상세를 못 본다. `actions/upload-artifact@v4` `if: failure()` 로 `playwright-report/` + `test-results/` 를 7일 보관 다운로드 가능 아티팩트로 노출. 재발 시 바로 스크린샷/트레이스 확보.
 
 ## 최근 완료 (2026-04-20)
 - `feature/project-shell` Office Hours Q&A 6세트 + 보안 리뷰 12건 완료.
@@ -75,3 +78,4 @@
 - **로컬 "E2E pass" 신뢰성**: 병합 전 리뷰 노트의 "E2E passed" 가 실제로는 Playwright Chromium 바이너리 자체가 미설치이거나 D1 migrations 미적용인 상태에서의 허위였음 (2026-04-21 확인). 가드: `scripts/check-e2e-prereqs.sh` + README "로컬에서 E2E 돌리기" 섹션. 머지 직전에는 반드시 스크립트가 FAIL=0 인 상태에서 `npm run test:e2e` 가 실제로 통과한 출력을 직접 확인한다.
 - **CSP 가 Turnstile + Astro island 를 조용히 차단하는 패턴** (2026-04-21 PR #1 fix commit i 회고): 초기 `script-src 'self'` 는 (a) Turnstile 외부 `api.js` 와 (b) Astro 가 `client:load` 디렉티브마다 주입하는 인라인 부트스트랩 스크립트를 모두 차단한다. 결과: 로그인 실패 + 모든 React island 가 hydrate 실패 → 모달/토스트/드로어 비작동. 이 상태에서 axe-smoke 만 돌리면 SSR HTML 은 정상이라 "그린"처럼 보인다. 가드: (a) CSP 변경 시 반드시 `npm run test:e2e` 4 spec 전체 실행, (b) DESIGN §10.4.1 에 현재 허용 항목과 v1 nonce 마이그레이션 계획 기록, (c) `src/middleware.ts` 주석 블록에 `'unsafe-inline'` 이 필요한 이유 명문화.
 - **단일 뷰 내부 구성요소의 a11y semantics 누락 패턴** (2026-04-21 PR #1 fix commit j 회고): landmark 레벨(commits a–h) 을 고쳐도 tablist 내부의 `DisabledTab` 이 `<span>` 래퍼 안에 `role` 없는 `<button>` 을 갖고 있어 `aria-required-children` 이 critical 로 떨어졌다. 또 `text-primary #1F6FEB` 가 4.21:1 로 WCAG AA 4.5:1 미달이었음. 가드: (a) axe-smoke 를 항상 로그인 이후 페이지까지 뻗게 (commit i 에서 확정), (b) `includedImpacts: ['moderate','serious','critical']` 로 강제, (c) 색상 변경 시 contrast ratio 계산을 주석으로 남김, (d) 복합 role (tablist/listbox) 은 자식 요소가 모두 해당 role 을 갖는지 컴포넌트 레벨에서 확인.
+- **로컬 E2E 녹색 ≠ CI E2E 녹색 (env 불일치 패턴)** (2026-04-21 PR #1 CI fix commits k/l/m 회고): CI 에 `.dev.vars` 가 없으면 Astro dev 서버는 `APP_PASSWORD` / `TURNSTILE_*` / `JWT_SECRET` 없이 올라와 로그인 페이지가 `data-sitekey=""` 렌더된다. Playwright 는 에러 없이 로그인을 "시도"만 하고 시간만 잡아먹다 타임아웃 → `Process completed with exit code 1` 만 남기고 원인 미공개. 또 `on: [push, pull_request]` 가 같은 커밋에 2 런을 병렬로 돌려 flake 처럼 보이는 시그널을 만든다. 가드: (a) `.github/workflows/ci.yml` 에 `.dev.vars` 를 e2e 직전 단계에서 seed, (b) `on:` 을 `push: branches:[main]` + `pull_request` 로 고정해 PR 커밋당 1 런, (c) `actions/upload-artifact@v4` `if: failure()` 로 `playwright-report/` + `test-results/` 노출, (d) `scripts/check-e2e-prereqs.sh` 을 로컬과 CI 에서 동일하게 실행해 환경 일치 확인.
