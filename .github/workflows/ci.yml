@@ -53,3 +53,5 @@ jobs:
           retention-days: 7
           if-no-files-found: warn
       - run: npm run build
+      - name: verify CSS bundle
+        run: bash scripts/check-build-css.sh
