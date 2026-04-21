@@ -10,6 +10,18 @@
 
 ---
 
+## 2026-04-21 PM — PR #1 CI green + merged
+
+완료: a11y fix 3커밋 + CI infra 3커밋 → verify green → merge
+변경: AuthLayout 신규, PilotWarningBanner 이동, axe-smoke 강화, `.dev.vars` seed workflow, `upload-artifact` on failure, CI trigger scope 축소
+다음: worktree 정리, 이슈화, `/checkpoint`
+
+## 2026-04-21 AM — feature/project-shell shipped
+
+완료: T1~T32 (32/34), PR #1 머지 (14d0958)
+변경: 84 files, 19356 additions (Astro 5 scaffold, D1 스키마, 인증, 업로드, 프로젝트 CRUD, Cron cleanup, E2E 6종, axe smoke 3종)
+다음: CI 실패 발견 → 같은 날 PM 세션에서 해결
+
 ## 2026-04-21 — PR #1 CI 인프라 fix commits k + l + m (.dev.vars seed + trigger cleanup + artifact upload)
 - 완료: 로컬 E2E 녹색인데 CI 는 계속 레드였던 근인 확정 → CI 에 `.dev.vars` 가 없어 Astro dev 서버가 `APP_PASSWORD` / `TURNSTILE_*` / `JWT_SECRET` 없이 기동, 로그인 페이지가 `data-sitekey=""` 로 렌더되어 Turnstile 토큰 미생성, 모든 E2E 로그인이 조용히 실패. 해결 3 커밋: `f270da8` `fix(ci): seed .dev.vars for E2E before running tests` — Cloudflare 공식 always-pass Turnstile 테스트키 + throwaway `JWT_SECRET` 으로 `.dev.vars` 를 e2e 직전에 시드. `33c75fd` `ci: one run per commit` — `on: [push, pull_request]` 가 PR 브랜치당 2 런을 독립 VM 에서 병렬 실행해 같은 커밋에 녹색/적색이 섞이는 flake 시그널을 `push: branches:[main]` + `pull_request` 로 교체. `abc9955` `ci: upload Playwright report on E2E failure` — `actions/upload-artifact@v4` `if: failure()` 로 `playwright-report/` + `test-results/` 를 7일 보관 아티팩트로. admin-only step logs (`/actions/jobs/{id}/logs` 403) 우회. 3 커밋 푸시 후 CI `verify | completed | success` 단일 런 그린. PR #1 mergeable=true, head=abc9955.
 - 관찰된 CI flake: 33c75fd 단일 런이 한 번 레드 → abc9955 에서 동일 코드가 그린. 추정 원인: Astro dev 콜드부트 + Playwright chromium 첫 기동 + `.dev.vars` 로드 타이밍 경합. artifact upload 가 들어갔으므로 재발 시 `playwright-report/` 다운로드로 즉시 근인 확인 가능.
