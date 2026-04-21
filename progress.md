@@ -85,3 +85,5 @@ Cloudflare 배포 또는 `feature/design-system` 착수 결정.
 - **Cloudflare 배포 미수행**: 별도 세션에서 체크리스트(wrangler secrets 설정 → D1 원격 migrate → Pages 배포 → `workers/cleanup.wrangler.toml` 별도 배포) 선행 필수.
 - **`owner_id` 미적용**: 멀티테넌트 전환 시 v1 이슈 #5 선행. 현 v0 는 "1 배포 = 1 조직" 전제.
 - **cron 원자성 미보장**: R2 객체 삭제와 D1 row 삭제가 별개 트랜잭션. 장기 운영 시 이슈 #4 해결 필요.
+- **wrangler major bump (3.x → 4.x) 보류**: 2026-04-21 배포 세션에서 로컬 `wrangler 3.114.17` 확인. 4.84.0 업그레이드 알림이 있으나 major 라 breaking changes 가능. 이번 v0 배포는 3.x 로 진행. **배포 완료 후 GitHub 이슈로 마이그레이션 작업 생성** 예정 (`wrangler.toml` compatibility_date 상향 + Pages/Worker 빌드 재검증).
+- **Windows 로컬 `npm run lint` 실패 패턴** (2026-04-21 Phase 0 회고): `core.autocrlf=true` (Windows 기본) + `.prettierrc.json` 에 `endOfLine` 미설정 → working tree CRLF ↔ prettier 기본 `lf` 충돌. 로컬만 red, CI(Linux) 는 LF 라 green. 임시 우회: 로컬 `git config core.autocrlf input`. **근본 해결책은 `.gitattributes` 에 `* text=auto eol=lf` 추가** (별도 이슈). 또는 `.prettierrc.json` 에 `"endOfLine": "auto"` (단 config-protection hook 이 prettierrc 수정을 차단하므로 hook 완화 필요).
