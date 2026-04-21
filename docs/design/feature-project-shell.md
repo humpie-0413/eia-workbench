@@ -196,10 +196,10 @@ PR #1 CI 에서 `landmark-one-main` + `region` (axe moderate) 이 잡혔다. 원
 
 ### 10.4 CSP · 응답 헤더 (L1, L5)
 
-모든 HTML 응답:
+모든 HTML 응답 (v0 실제 헤더, `src/middleware.ts`):
 
 ```
-Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://challenges.cloudflare.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'
+Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'
 X-Content-Type-Options: nosniff
 X-Frame-Options: DENY
 Referrer-Policy: strict-origin-when-cross-origin
@@ -211,6 +211,18 @@ Referrer-Policy: strict-origin-when-cross-origin
 Content-Disposition: attachment; filename="<RFC 5987 인코딩>"
 X-Content-Type-Options: nosniff
 ```
+
+#### 10.4.1 `'unsafe-inline'` 트레이드오프 (2026-04-21 추가)
+
+초기 계획은 `script-src 'self'` 였으나 v0 에서 `'unsafe-inline'` 및 `https://challenges.cloudflare.com` 두 항목을 **의도적으로 허용**한다. 근거:
+
+1. **Astro island 부트스트랩** — `client:load` / `client:idle` 디렉티브당 Astro 는 작은 인라인 `<script>` 블록을 SSR HTML 에 주입해 React island 를 hydrate 한다. `unsafe-inline` 이 없으면 `NewProjectModal`, `Toast`, `RecentlyDeletedDrawer`, `UploadDropzone`, `FileList` 전부 하이드레이트 실패 → 앱이 사실상 read-only.
+2. **Cloudflare Turnstile** — `challenges.cloudflare.com/turnstile/v0/api.js` 는 외부 스크립트로 인라인화 불가. `frame-src https://challenges.cloudflare.com` 도 챌린지 iframe 렌더링에 필요.
+3. `object-src 'none'`, `frame-ancestors 'none'`, `form-action 'self'`, `base-uri 'self'` 는 유지. 클릭재킹·폼 탈취·base tag 주입은 여전히 차단.
+
+v1 마이그레이션 목표: **nonce 기반 CSP** (Astro experimental.csp). 각 요청마다 난수 nonce 를 발급해 `<script nonce="…">` 에만 적용 → `'unsafe-inline'` 제거 가능. `src/middleware.ts` 주석 블록에 관련 링크 기재. 우선순위: feature 합류 이후 Housekeeping 티켓.
+
+회고: 이 항목은 PR #1 CI 실패로 드러남. 초기 `script-src 'self'` 구성에서 E2E 로그인 이 Turnstile 스크립트 차단으로 항상 실패했고, axe-smoke 만 돌던 테스트는 인증 페이지에 도달하지 못해 "그린"처럼 보였다. 모든 island 가 SSR 결과만 표시되고 인터랙션이 비활성화되는 패턴을 CSP 변경 시 반드시 수동/E2E 검증.
 
 ### 10.5 로깅 (M4)
 
