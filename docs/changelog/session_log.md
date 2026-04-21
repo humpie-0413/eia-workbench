@@ -10,6 +10,10 @@
 
 ---
 
+## 2026-04-22 — v0 Cloudflare 배포 완료 + CSS/env fix 2건 + 후속 이슈 7건
+- 완료: Phase 0~8 전체. `https://eia-workbench-v0.pages.dev` 프로덕션. 두 건의 post-ship 수정 — `79a8a7b` CSS fix (layout frontmatter import + `scripts/check-build-css.sh` 2-signal CI verify), `0bfd35c` wrangler env fix (`[env.production.vars]` + 비상속 바인딩 재선언 + `scripts/check-wrangler-prod-vars.sh` 5-signal CI verify). Cleanup worker 별도 배포(cron `0 18 * * *`). 프로덕션 시크릿 창 스모크: 로그인 302 → 프로젝트 CRUD → 업/삭/복 → 드로어 전부 통과. Turnstile hostname `eia-workbench-v0.pages.dev` 단일 허용 적용 후에도 로그인 통과. systematic-debugging 으로 "대시보드 UI env 주입이 잠기는 이유" 근인 확정 (wrangler.toml `[vars]` 가 소스 오브 트루스로 고정되면 대시보드 plain var 편집 lockout). 계획 문서 fixup: §3.3 `_cf_KV` 주석 정정, §5.2 `--commit-dirty=true` 명시, §5.4 Turnstile hostname scope ≠ CSRF 경고, §4.A 변경 사유 주석. 스모크 플레이북 `docs/deploy/v0-smoke-playbook.md`, 후속 이슈 7건 `docs/issues/01-07.md` 작성.
+- 다음: `docs/issues/01-07` 7건을 GitHub Issues 로 올림 (P1: `02 preview APP_ORIGIN`, `03 prod-like E2E` 먼저). 이후 `feature/design-system` 오피스 아워 또는 housekeeping #40/#41 처리.
+
 ## 2026-04-21 PM — PR #1 CI green + merged
 
 완료: a11y fix 3커밋 + CI infra 3커밋 → verify green → merge

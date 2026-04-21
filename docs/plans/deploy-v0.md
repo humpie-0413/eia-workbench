@@ -134,23 +134,26 @@
   ```
   npx wrangler d1 execute DB --remote --command "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;"
   ```
-  - 기대: `d1_migrations`, `login_attempts`, `projects`, `uploads` (총 4개). 스키마가 `AUTOINCREMENT` 를 쓰면 `sqlite_sequence` 가 추가되어 총 5개.
-  - `_cf_KV` 는 D1 에 존재하지 않음 (Workers KV 내부 테이블이며 본 프로젝트는 KV 미사용).
+  - 기대 테이블:
+    - **애플리케이션:** `d1_migrations`, `login_attempts`, `projects`, `uploads` (4개)
+    - **D1 내부:** `_cf_KV` (Cloudflare 메타, 자동 생성. 무시 가능)
+    - **AUTOINCREMENT 사용 시:** `sqlite_sequence` (자동 생성)
+  - 애플리케이션 4개가 모두 포함되면 통과. `_cf_KV`, `sqlite_sequence` 는 D1 플랫폼 아티팩트이므로 "의도치 않은 테이블" 로 취급하지 않는다.
 
-**게이트:** 테이블 4~5개 존재, 위 이름이 모두 포함.
+**게이트:** 애플리케이션 테이블 4개가 모두 포함.
 
 ---
 
 ## 6. Phase 4 — Pages 환경변수 + 시크릿 주입 (10분)
 
-### 4.A. Plain vars (공개값) — Cloudflare 대시보드 UI 사용
+### 4.A. Plain vars (공개값) — `wrangler.toml [env.production.vars]`
 
-Pages 프로젝트 `eia-workbench-v0` → Settings → Environment variables → **Production** 탭에서:
+> **변경 사유(2026-04-22):** 최초 계획은 Cloudflare Pages 대시보드 UI 로 주입이었으나, `wrangler.toml` 에 `[vars]` 가 선언된 순간 대시보드가 잠긴다 ("Environment variables for this project are being managed through wrangler.toml"). 실제 수정은 `docs/plans/deploy-v0-wrangler-env-fix.md` 에서 `[env.production.vars]` 블록 도입으로 해결. 자세한 precedence 규칙: `docs/issues/05-vars-precedence-docs.md`.
 
-- [ ] **4.1** `APP_ORIGIN = https://eia-workbench-v0.pages.dev`
-- [ ] **4.2** `TURNSTILE_SITE_KEY = 0x4AAAAAADAUrmpBcDS4csj4`
-
-> **왜 UI?** `wrangler pages deployment` 계열은 배포별 env 오버라이드 전용. 프로젝트 수준 var 은 대시보드 또는 `[env.production.vars]` in `wrangler.toml`. 후자는 공개값이어도 reviewer 가 혼동하기 쉬워 UI 로 분리.
+- [x] **4.1** `APP_ORIGIN = "https://eia-workbench-v0.pages.dev"` → `wrangler.toml [env.production.vars]`
+- [x] **4.2** `TURNSTILE_SITE_KEY = "0x4AAAAAADAUrmpBcDS4csj4"` → `wrangler.toml [env.production.vars]`
+- [x] 비상속 바인딩 재선언: `[[env.production.d1_databases]]`, `[[env.production.r2_buckets]]` (Cloudflare 규칙)
+- [x] CI 검증: `scripts/check-wrangler-prod-vars.sh` (5-signal)
 
 ### 4.B. Secrets (암호화) — `wrangler pages secret put` 대화형
 
@@ -181,12 +184,13 @@ Pages 프로젝트 `eia-workbench-v0` → Settings → Environment variables →
 
 - [ ] **5.2** 배포
   ```
-  npx wrangler pages deploy dist --project-name eia-workbench-v0 --branch main --commit-hash=$(git rev-parse HEAD)
+  npx wrangler pages deploy dist --project-name eia-workbench-v0 --branch main --commit-hash=$(git rev-parse HEAD) --commit-dirty=true
   ```
   - `--branch main` 이 프로덕션으로 승격.
-  - `--commit-dirty=false` 는 존재하지 않는 플래그. 기본값이 이미 원하는 동작이라 제거.
   - `--commit-hash` 로 배포 메타데이터에 현재 커밋 해시 박음.
+  - `--commit-dirty=true` 는 로컬 working tree 에 untracked 파일이 있어도 진행. `public/.build-version` 같은 gitignored 빌드 아티팩트가 생길 수 있으므로 필요.
   - 출력 URL 포맷 확정은 §5.3 에서 수행.
+  - **byte-identical skip 주의:** wrangler 는 이전 배포와 `dist/` 가 동일하면 "No files to upload" 로 건너뛴다. 환경변수만 바꾸고 `dist/` 는 동일할 때 silent fail 됨. `docs/issues/06-byte-identical-deploy-curl-verify.md` 참고.
 
 - [ ] **5.3** 배포 URL 확정 + 헬스체크
   - `wrangler pages deploy` 출력 URL 을 그대로 기록. 출력 형식:
@@ -200,6 +204,7 @@ Pages 프로젝트 `eia-workbench-v0` → Settings → Environment variables →
   - **전제:** §5.3 에서 배포 URL 이 기대값과 일치한 경우에만 실행.
   - Turnstile → 해당 위젯 → Hostname Management → `eia-workbench-v0.pages.dev` 한 줄로 축소.
   - 불일치였다면 실제 URL 로 변경 후 §12 에 의사결정 기록.
+  - **Scope 주의:** Turnstile hostname 제한은 **위젯의 bot-challenge 허용 범위**를 제한한다. CSRF origin 체크(`env.APP_ORIGIN`)·로그인 경로와는 독립이다. 로그인 실패 디버깅 시 이 둘을 혼동하지 말 것 (2026-04-22 세션에서 혼동 사례 있음).
 
 **게이트:** 로그인 성공 + CSP 헤더 확인 + Turnstile hostname 제한 적용.
 
