@@ -1,7 +1,7 @@
 # progress.md
 
 ## 현재 목표
-`feature/project-shell` **PR #1 CI 실패 → a11y landmark 수정 중**. 로컬 E2E 재현 후 commits a–h 진행 완료, CI 재실행 대기. 다음은 CI 그린 → `/checkpoint` → 수동 머지 → 수동 배포.
+`feature/project-shell` **PR #1 CI fix commits i+j 푸시 완료** (2026-04-21). 로컬 E2E 6/6 그린. CI 그린 확인 → `/checkpoint` → 수동 머지 → 수동 배포.
 
 ## 완료
 - 저장소 초기화 (`git init`, main 브랜치).
@@ -24,8 +24,9 @@
 - Claude Code CLI + gstack + Superpowers 설치·확인.
 
 ## 진행 중
-- `feature/project-shell` CI fix 커밋 a–h 푸시 완료 (워크트리 `../eia-workbench-feature-project-shell`, PR #1 자동 갱신). 로컬에서 `landmark-one-main` + `region` (moderate) 재현 확정 후 AuthLayout 신설, `<aside>` landmark 래퍼, tablist `aria-label`, 정적 랜드마크 가드, axe-smoke impact floor 상향, DESIGN §6.1 A11y 규칙 추가.
-- CI 재실행 결과 대기. 그린이면 `/checkpoint` → 수동 머지.
+- `feature/project-shell` CI fix commits a–h (landmark 구조) + i (CSP + E2E login helper) + j (DisabledTab role=tab + WCAG AA primary) 푸시 완료. 로컬 E2E 6/6 그린 (axe-smoke 3, crud-happy, hwp-reject, quota-exceeded). CI 재실행 결과 대기 → `/checkpoint`.
+- commit i 핵심: `script-src 'self'` 이 Turnstile 스크립트와 Astro island 부트스트랩을 둘 다 차단하고 있었음. 이전 "E2E passed" 가 허위였던 두 번째 근인. DESIGN §10.4.1 에 `'unsafe-inline'` 트레이드오프 기록.
+- commit j 핵심: DisabledTab 을 `<span>` 래퍼 제거 + `<button role="tab" aria-selected="false" aria-disabled="true" title={tooltip}>` 로 평탄화. `--c-primary #1F6FEB` (4.21:1) → `#1456C5` (6.17:1) 로 어둡게 조정 (WCAG AA 4.5:1 충족).
 
 ## 최근 완료 (2026-04-20)
 - `feature/project-shell` Office Hours Q&A 6세트 + 보안 리뷰 12건 완료.
@@ -72,3 +73,5 @@
 - **토큰 소모**: `/autoplan` 은 기능당 1회, 결과는 plan 에 캐시.
 - **AI가 비로그인/보조 페이지에서 시맨틱 랜드마크 빠뜨리는 패턴** (2026-04-21 PR #1 CI 실패 회고): 로그인 페이지를 layout 없이 bare `<html>/<body>` 로 만들고, `role="status"` 배너를 landmark 밖에 두는 실수가 반복될 수 있다. 가드: (a) `src/layouts/{App,Auth}Layout.astro` 로 `<main>` 강제, (b) `src/lib/check-landmarks.ts` 정적 유닛 테스트로 즉시 차단, (c) axe-smoke E2E `includedImpacts: ['moderate','serious','critical']` 고정, (d) DESIGN 문서 §6.1 에 규칙 명문화. 다음 기능 시작 시 이 네 가드가 살아있는지 먼저 확인할 것.
 - **로컬 "E2E pass" 신뢰성**: 병합 전 리뷰 노트의 "E2E passed" 가 실제로는 Playwright Chromium 바이너리 자체가 미설치이거나 D1 migrations 미적용인 상태에서의 허위였음 (2026-04-21 확인). 가드: `scripts/check-e2e-prereqs.sh` + README "로컬에서 E2E 돌리기" 섹션. 머지 직전에는 반드시 스크립트가 FAIL=0 인 상태에서 `npm run test:e2e` 가 실제로 통과한 출력을 직접 확인한다.
+- **CSP 가 Turnstile + Astro island 를 조용히 차단하는 패턴** (2026-04-21 PR #1 fix commit i 회고): 초기 `script-src 'self'` 는 (a) Turnstile 외부 `api.js` 와 (b) Astro 가 `client:load` 디렉티브마다 주입하는 인라인 부트스트랩 스크립트를 모두 차단한다. 결과: 로그인 실패 + 모든 React island 가 hydrate 실패 → 모달/토스트/드로어 비작동. 이 상태에서 axe-smoke 만 돌리면 SSR HTML 은 정상이라 "그린"처럼 보인다. 가드: (a) CSP 변경 시 반드시 `npm run test:e2e` 4 spec 전체 실행, (b) DESIGN §10.4.1 에 현재 허용 항목과 v1 nonce 마이그레이션 계획 기록, (c) `src/middleware.ts` 주석 블록에 `'unsafe-inline'` 이 필요한 이유 명문화.
+- **단일 뷰 내부 구성요소의 a11y semantics 누락 패턴** (2026-04-21 PR #1 fix commit j 회고): landmark 레벨(commits a–h) 을 고쳐도 tablist 내부의 `DisabledTab` 이 `<span>` 래퍼 안에 `role` 없는 `<button>` 을 갖고 있어 `aria-required-children` 이 critical 로 떨어졌다. 또 `text-primary #1F6FEB` 가 4.21:1 로 WCAG AA 4.5:1 미달이었음. 가드: (a) axe-smoke 를 항상 로그인 이후 페이지까지 뻗게 (commit i 에서 확정), (b) `includedImpacts: ['moderate','serious','critical']` 로 강제, (c) 색상 변경 시 contrast ratio 계산을 주석으로 남김, (d) 복합 role (tablist/listbox) 은 자식 요소가 모두 해당 role 을 갖는지 컴포넌트 레벨에서 확인.

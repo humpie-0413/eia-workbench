@@ -10,6 +10,10 @@
 
 ---
 
+## 2026-04-21 — PR #1 CI fix commits i + j (CSP + DisabledTab a11y + primary contrast)
+- 완료: 로컬 E2E 재현으로 CI 실패의 진짜 근인 2개 확정 — (1) `script-src 'self'` 이 Turnstile 외부 `api.js` 와 Astro island 인라인 부트스트랩을 동시 차단, (2) `DisabledTab` 의 `<span>` 래퍼 + role 없는 `<button>` 이 `aria-required-children` 을 위반 + `text-primary #1F6FEB` 가 WCAG AA 4.21:1 로 미달. 해결: commit `7233a7b` — middleware CSP `'unsafe-inline' https://challenges.cloudflare.com` + `frame-src` 허용, 공용 `loginViaUi` 헬퍼로 Turnstile 토큰 주입 대기 후 submit, axe-smoke 에 island hydration 재시도 루프, crud/hwp 테스트 strict-mode locator 정리. commit `61185f1` — DisabledTab 을 flat `<button role="tab" aria-selected="false" aria-disabled="true" title={tooltip}>` 로 평탄화, `--c-primary` `#1456C5` (6.17:1) + `--c-primary-hover` `#0E3E8C`. 로컬 `npm run test:e2e` 6/6 그린. `docs/design/feature-project-shell.md` §10.4.1 에 `'unsafe-inline'` 트레이드오프 + nonce CSP v1 마이그레이션 목표 기록, progress.md 리스크에 CSP + 내부 semantics 패턴 2건 추가.
+- 다음: CI 그린 확인 → `/checkpoint` → 사용자 수동 머지 → 수동 배포.
+
 ## 2026-04-20 — feature/project-shell 구현 완료 + 최종 리뷰
 - 완료: `subagent-driven-development`로 T1–T28 (+ Housekeeping #39 eslint globals) 전체 구현. 워크트리 `../eia-workbench-feature-project-shell`, 40 커밋(+1 P2 fix), 104/104 유닛 테스트, typecheck/lint/prettier/assertion-grep clean. 최종 리뷰(Opus, id `a4176f43bee12289c`)가 P2 한 건 지적 → `POST /api/projects/[id]/uploads` 201 응답에서 `r2_key` 제거 + 누출 방지 테스트 추가. `docs/reviews/feature-project-shell.md` 리뷰 노트 작성.
 - 다음: PR 생성(CLAUDE.md §9.5: `/ship` PR-only, 자동 배포 금지). 병합 후 Housekeeping #40(kostat) / #41(route hardening) / cron R2/D1 원자성 / owner_id v1 / HWP v0.5 이슈화.
