@@ -13,7 +13,27 @@ migrations_dir = "migrations"
 binding = "UPLOADS"
 bucket_name = "eia-workbench-v0-uploads"
 
-# [vars] are local-dev defaults. Production overrides come from the Pages dashboard env vars.
+# [vars] are local-dev defaults and preview-branch values. The Pages dashboard
+# is locked once wrangler.toml declares [vars], so production values come from
+# [env.production.vars] below (selected by `wrangler pages deploy --branch=main`).
 [vars]
 APP_ORIGIN = "http://localhost:3000"
+TURNSTILE_SITE_KEY = "1x00000000000000000000AA"  # Cloudflare always-pass test key
 
+# Production environment — applied on `wrangler pages deploy --branch=main`.
+# Cloudflare bindings (d1_databases, r2_buckets, vars) are non-inheritable:
+# overriding vars under env.production forces restating D1 + R2 with identical
+# values to the top-level blocks. See docs/plans/deploy-v0-wrangler-env-fix.md.
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "eia-workbench-v0"
+database_id = "afca9a24-7725-4530-8c49-e3d001bd24d8"
+migrations_dir = "migrations"
+
+[[env.production.r2_buckets]]
+binding = "UPLOADS"
+bucket_name = "eia-workbench-v0-uploads"
+
+[env.production.vars]
+APP_ORIGIN = "https://eia-workbench-v0.pages.dev"
+TURNSTILE_SITE_KEY = "0x4AAAAAADAUrmpBcDS4csj4"
