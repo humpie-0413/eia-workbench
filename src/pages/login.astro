@@ -1,0 +1,58 @@
+---
+import { handleLoginPost } from '@/pages/login.post-handler';
+import AuthLayout from '@/layouts/AuthLayout.astro';
+
+if (!Astro.locals.runtime) {
+  throw new Error('Cloudflare runtime not available — ensure @astrojs/cloudflare adapter is used');
+}
+const env = Astro.locals.runtime.env;
+const ip = Astro.request.headers.get('cf-connecting-ip') ?? '0.0.0.0';
+let error: string | null = null;
+
+if (Astro.request.method === 'POST') {
+  const result = await handleLoginPost(Astro.request, env, ip);
+  if (result.kind === 'response') return result.response;
+  error = result.message;
+}
+---
+
+<AuthLayout title="로그인 · eia-workbench">
+  <Fragment slot="head">
+    {
+      /* Turnstile loader has no stable SRI — Cloudflare rotates this bundle. CSP + is:inline are the compensating controls. */
+    }
+    <script is:inline src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer
+    ></script>
+  </Fragment>
+  <form
+    method="post"
+    class="w-full max-w-sm space-y-4 rounded-md border border-border bg-surface p-6"
+  >
+    <h1 class="text-h1">eia-workbench · v0 파일럿</h1>
+    <p class="text-small text-text-secondary">
+      이 인스턴스의 프로젝트는 인증된 모든 사용자에게 보입니다. 조직별 격리가 필요하면 별도 배포를
+      사용하세요.
+    </p>
+    <label class="block space-y-1">
+      <span class="text-body font-semibold">패스워드 *</span>
+      <input
+        type="password"
+        name="password"
+        required
+        aria-required="true"
+        class="h-9 w-full rounded-md border border-border bg-surface px-3"
+      />
+    </label>
+    <div class="cf-turnstile" data-sitekey={env.TURNSTILE_SITE_KEY} data-theme="light"></div>
+    {
+      error && (
+        <p class="text-small text-danger" role="alert">
+          {error}
+        </p>
+      )
+    }
+    <button type="submit" class="h-9 w-full rounded-md bg-primary text-white hover:bg-primary-hover"
+      >로그인</button
+    >
+  </form>
+</AuthLayout>

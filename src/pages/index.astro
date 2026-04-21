@@ -1,0 +1,62 @@
+---
+import AppLayout from '@/layouts/AppLayout.astro';
+import ProjectCard from '@/components/ProjectCard.astro';
+import NewProjectModal from '@/components/NewProjectModal';
+import RecentlyDeletedDrawer from '@/components/RecentlyDeletedDrawer';
+
+const env = Astro.locals.runtime.env;
+const q = Astro.url.searchParams.get('q') ?? '';
+const rows = await env.DB.prepare(
+  `SELECT id, name, industry, site_region, site_sub_region, created_at
+   FROM projects WHERE deleted_at IS NULL
+   AND (name LIKE ? OR IFNULL(site_region,'') LIKE ? OR IFNULL(site_sub_region,'') LIKE ?)
+   ORDER BY created_at DESC`
+)
+  .bind(`%${q}%`, `%${q}%`, `%${q}%`)
+  .all();
+const projects = (rows.results ?? []) as Array<{
+  id: string;
+  name: string;
+  industry: string;
+  site_region: string | null;
+  site_sub_region: string | null;
+  created_at: string;
+}>;
+---
+
+<AppLayout title="프로젝트 · eia-workbench">
+  <section class="mb-6 flex items-center justify-between">
+    <h1 class="text-display">프로젝트</h1>
+    <div class="space-x-2">
+      <NewProjectModal client:load />
+      <RecentlyDeletedDrawer client:idle />
+    </div>
+  </section>
+
+  <form method="get" class="mb-6">
+    <label class="sr-only" for="q">검색</label>
+    <input
+      id="q"
+      name="q"
+      type="search"
+      value={q}
+      placeholder="이름·지역 검색"
+      class="h-9 w-full max-w-md rounded-md border border-border bg-surface px-3"
+    />
+  </form>
+
+  {
+    projects.length === 0 ? (
+      <div class="rounded-md border border-dashed border-border p-12 text-center">
+        <p class="text-h2 text-text-secondary">첫 프로젝트를 만들어 보세요.</p>
+        <p class="mt-2 text-small text-text-tertiary">우측 상단 "새 프로젝트" 버튼을 누르세요.</p>
+      </div>
+    ) : (
+      <div class="grid gap-4 md:grid-cols-2">
+        {projects.map((p) => (
+          <ProjectCard {...p} />
+        ))}
+      </div>
+    )
+  }
+</AppLayout>

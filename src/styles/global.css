@@ -1,0 +1,23 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --c-bg: #FAFAF8;
+  --c-surface: #FFFFFF;
+  --c-border: #E5E5E1;
+  --c-text-primary: #18181B;
+  --c-text-secondary: #52525B;
+  --c-text-tertiary: #71717A;
+  --c-primary: #1456C5;
+  --c-primary-hover: #0E3E8C;
+  --c-warning: #B45309;
+  --c-warning-bg: #FEF3C7;
+  --c-error: #B91C1C;
+  --c-error-bg: #FEE2E2;
+  --c-focus-ring: #1F6FEB;
+}
+
+html, body { background: var(--c-bg); color: var(--c-text-primary); }
+body { font-family: theme('fontFamily.sans'); }
+*:focus-visible { outline: 2px solid var(--c-focus-ring); outline-offset: 2px; }

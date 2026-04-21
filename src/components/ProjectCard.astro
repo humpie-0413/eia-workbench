@@ -1,0 +1,29 @@
+---
+interface Props {
+  id: string;
+  name: string;
+  industry: string;
+  site_region: string | null;
+  site_sub_region: string | null;
+  created_at: string;
+}
+const { id, name, industry, site_region, site_sub_region, created_at } = Astro.props;
+const INDUSTRY_LABEL: Record<string, string> = { onshore_wind: '육상풍력' };
+const region = [site_region, site_sub_region].filter(Boolean).join(' · ') || '지역 미지정';
+---
+
+<a
+  href={`/projects/${id}`}
+  class="block rounded-md border border-border bg-surface p-6 hover:border-primary"
+>
+  <h2 class="text-h2">{name}</h2>
+  <p class="mt-1 text-small text-text-secondary">
+    <span class="mr-2 inline-block rounded border border-border px-2 py-0.5"
+      >{INDUSTRY_LABEL[industry] ?? industry}</span
+    >
+    {region}
+  </p>
+  <p class="mt-3 text-small text-text-tertiary">
+    생성 {new Date(created_at).toLocaleString('ko-KR')}
+  </p>
+</a>
