@@ -5,13 +5,13 @@ compatibility_flags = ["nodejs_compat"]
 
 [[d1_databases]]
 binding = "DB"
-database_name = "eia-workbench-dev"
-database_id = "local-placeholder"
+database_name = "eia-workbench-v0"
+database_id = "afca9a24-7725-4530-8c49-e3d001bd24d8"
 migrations_dir = "migrations"
 
 [[r2_buckets]]
 binding = "UPLOADS"
-bucket_name = "eia-workbench-uploads-dev"
+bucket_name = "eia-workbench-v0-uploads"
 
 [triggers]
 crons = ["0 18 * * *"]  # 03:00 KST

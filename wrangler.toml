@@ -5,14 +5,15 @@ pages_build_output_dir = "./dist"
 
 [[d1_databases]]
 binding = "DB"
-database_name = "eia-workbench-dev"
-database_id = "local-placeholder"
+database_name = "eia-workbench-v0"
+database_id = "afca9a24-7725-4530-8c49-e3d001bd24d8"
 migrations_dir = "migrations"
 
 [[r2_buckets]]
 binding = "UPLOADS"
-bucket_name = "eia-workbench-uploads-dev"
+bucket_name = "eia-workbench-v0-uploads"
 
+# [vars] are local-dev defaults. Production overrides come from the Pages dashboard env vars.
 [vars]
 APP_ORIGIN = "http://localhost:3000"
 
