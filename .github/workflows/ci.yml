@@ -21,6 +21,20 @@ jobs:
       - name: apply D1 migrations (local)
         run: npx wrangler d1 migrations apply DB --local
       - run: npx playwright install --with-deps chromium
+      - name: seed .dev.vars for E2E (Turnstile always-pass keys)
+        # @astrojs/cloudflare platformProxy auto-loads .dev.vars so runtime.env
+        # picks up these values inside Astro dev. The Turnstile site/secret
+        # keys are Cloudflare's documented always-pass test keys — not secrets.
+        # JWT_SECRET is a throwaway string valid only for this ephemeral runner.
+        env:
+          E2E_APP_PASSWORD: ${{ secrets.E2E_APP_PASSWORD || 'change-me-long-random' }}
+        run: |
+          cat > .dev.vars <<EOF
+          APP_PASSWORD=${E2E_APP_PASSWORD}
+          JWT_SECRET=ci-e2e-throwaway-secret-not-used-in-prod-0000000000000000
+          TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA
+          TURNSTILE_SITE_KEY=1x00000000000000000000AA
+          EOF
       - name: e2e
         env:
           E2E_APP_PASSWORD: ${{ secrets.E2E_APP_PASSWORD || 'change-me-long-random' }}
