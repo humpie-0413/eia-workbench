@@ -1,7 +1,7 @@
 # eia-workbench v0 — Cloudflare 배포 계획
 
 **작성일:** 2026-04-21
-**대상 커밋:** `origin/main` @ `180c199`
+**대상 커밋:** `origin/main` @ `76c27dd` (plan revisions) 기반, 배포 직전 커밋은 Phase 2.5 에서 확정
 **배포 대상:** Cloudflare Pages (`eia-workbench-v0`) + Cron Worker (`eia-workbench-cleanup`)
 
 ---
@@ -40,7 +40,7 @@
 
 ## 2. Phase 0 — 배포 전 로컬 검증 (5분)
 
-- [ ] **0.1** `git status` clean, `git log --oneline -1` 이 `180c199` 인지 확인
+- [ ] **0.1** `git status` clean, `git log --oneline -1` 이 `76c27dd` (또는 이후 plan 커밋) 와 일치하는지 확인. `origin/main` 과 동기화 상태여야 함.
 - [ ] **0.2** `npm ci` 재설치 (node_modules lock 확인)
 - [ ] **0.3** `npm run typecheck && npm run lint && npm test` → all green
 - [ ] **0.4** `npm run build` → `dist/` 생성 확인
