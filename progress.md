@@ -1,7 +1,25 @@
 # progress.md
 
 ## 현재 목표
-v0 Cloudflare 배포 완료. 다음 세션에서 `feature/design-system` 착수 또는 follow-up 이슈 7건 처리.
+`feature/scoping-assistant` **A안 (spec v2 재설계)** 진행. T1 법령 감사 FAIL → 사용자 PDF 수령 + OH v2 답변 대기.
+
+## 2026-04-22/23 feature/scoping-assistant v1 T1 법령 감사 FAIL → A안 채택 → 세션 정리
+- **T1 법령 감사 결과 FAIL (CRITICAL 2 + HIGH 2)**:
+  - C1 (10배 오류): `capacity_mw >= 10` → 실제 **100 MW (10만 kW)** 이상이 EIA 대상
+  - C2 (별표 오류): citation `별표2` → 실제 **별표3** (별표2 는 전략환경영향평가)
+  - H3 (축 오류): 소규모 EIA 는 발전용량 기준 아닌 **면적 × 용도지역** 기준
+  - H4 (15배 오류): `forest_conversion_ha > 1` → 풍력발전시설 **660㎡ (0.066 ha)** 이상
+- **STOP GATE 정상 작동.** plan T1 BLOCKING task 가 숫자 오류를 spec→구현→배포 경로에서 사전 차단.
+- **A안 채택** (입력 스키마·rule pack 재설계 + 원문 확보 후 재착수). 이유:
+  - 면적·용도지역 축 누락은 숫자 교정만으로 해결 불가 (스키마 자체 재설계 필요)
+  - law.go.kr 별표 PDF 는 JS 렌더링이라 자동 fetch 실패 → 사용자 수동 다운로드 필요
+- 산출물 (WIP commit 으로 보존):
+  - `docs/findings/2026-04-22-scoping-rule-pack-legal-audit.md` — T1 감사 리포트
+  - `docs/office-hours/2026-04-23-scoping-assistant-v2-redesign.md` — spec v2 설계 질문 Q1~Q10
+  - `data/rules/scoping/reference/{README,MANIFEST}.md` — PDF 배치 정책 (재호스팅 금지)
+  - `.gitignore` — `data/rules/scoping/reference/*.pdf` 로컬 전용 제외
+  - `docs/issues/13-spec-law-audit-mandatory.md` — CLAUDE.md §9.3 에 ⑥ 항목 추가 제안
+- v1 산출물 (`docs/superpowers/specs/2026-04-22-scoping-assistant-design.md`, `docs/plans/feature-scoping-assistant.md`) 은 그대로 WIP commit 에 포함. v2 작성 시 `*-superseded-by-v2` suffix 로 rename (OH Q9 기본값).
 
 ## 완료
 
@@ -47,7 +65,10 @@ v0 Cloudflare 배포 완료. 다음 세션에서 `feature/design-system` 착수 
 - Claude Code CLI + gstack + Superpowers 설치·확인.
 
 ## 진행 중
-(비어 있음)
+- **`feature/scoping-assistant` A안 Step 1-2 (USER) 대기**:
+  1. 법제처 별표3 / 별표4 (환경영향평가법 시행령) + 산지관리법 시행규칙 별표4 PDF 수동 다운로드 → `data/rules/scoping/reference/` 배치 (MANIFEST 명명규칙)
+  2. `docs/office-hours/2026-04-23-scoping-assistant-v2-redesign.md` Q1~Q10 답변 (기본값 수락 가능)
+- 완료 시 Claude 자동 작업: T1 재감사 (PDF 기반) → spec v2 + plan v2 작성 → FULL-AUTO DELEGATION 재개
 
 ## 최근 완료 (2026-04-20)
 - `feature/project-shell` Office Hours Q&A 6세트 + 보안 리뷰 12건 완료.
@@ -64,11 +85,18 @@ v0 Cloudflare 배포 완료. 다음 세션에서 `feature/design-system` 착수 
   - 보안 12건: 브루트포스 방어, magic bytes 검증, CSRF Origin, CSP, 로깅 PII 제외, Cron 안전가드 등 모두 설계 반영.
 
 ## 다음 작업
-1. `docs/issues/01-07` 7건을 GitHub Issues 로 올리기 (우선순위: P1 #02, #03 먼저).
-2. `DESIGN.md` 기본 섹션 확장 또는 `/design-consultation` 1회.
-3. `feature/design-system` 의 `/office-hours` 준비.
-4. 이슈 #2 + #3 해결 (`fix/project-shell-hardening` 단일 브랜치 권장).
-5. (이슈 #4, #5, #6 은 v0.5/v1 트리거 대기)
+
+### 다음 세션 시작 시 (최우선)
+1. **사용자**: 법제처 별표 PDF 3개 수령 (MANIFEST 참조) → `data/rules/scoping/reference/` 배치
+2. **사용자**: OH v2 Q1~Q10 답변 (`docs/office-hours/2026-04-23-scoping-assistant-v2-redesign.md`)
+3. **Claude**: PDF 기반 T1 재감사 → spec v2 + plan v2 작성
+
+### 백로그
+4. `docs/issues/13` (spec 법령 감사 의무화) 를 CLAUDE.md §9.3 에 ⑥ 항목으로 반영
+5. `docs/issues/01-07` 7건을 GitHub Issues 로 올리기 (P1 #02, #03 먼저)
+6. `DESIGN.md` 기본 섹션 확장 또는 `/design-consultation` 1회
+7. 이슈 #2 + #3 해결 (`fix/project-shell-hardening` 단일 브랜치 권장)
+8. (이슈 #4, #5, #6 은 v0.5/v1 트리거 대기)
 
 ### v0 배포 후속(2026-04-22 도입)
 6. `docs/issues/01-wrangler-3-to-4-migration.md` — wrangler 4.x 업그레이드
@@ -81,7 +109,8 @@ v0 Cloudflare 배포 완료. 다음 세션에서 `feature/design-system` 착수 
 13. `docs/issues/08-cleanup-worker-local-verify.md` — cleanup worker 로컬 드라이런 CI step (P1)
 
 ## 이슈/막힌 점
-- 없음. (공개 샘플 PDF/DOCX 3종 조달이 QA 단계 선행 조건)
+- **scoping-assistant v2 블록**: PDF 3개 미확보 상태에서는 T1 재감사 불가 → spec v2 작성 불가 → 전체 feature 구현 정지. 사용자 수동 다운로드 필요.
+- (기존) 공개 샘플 PDF/DOCX 3종 조달이 QA 단계 선행 조건
 
 ## 결정된 설계
 - 운영 LLM 은 MVP 에서 "프롬프트 생성기 + 사용자 수동 Claude 실행" 전용.

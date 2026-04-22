@@ -32,6 +32,9 @@ data/samples/private/*
 /uploads/
 !src/**/uploads/
 
+# Rule pack 레퍼런스 PDF 는 로컬 전용 (재호스팅 금지 — CLAUDE.md §2-4)
+data/rules/scoping/reference/*.pdf
+
 # Astro / Cloudflare / 테스트 산출물
 .astro/
 .wrangler/

@@ -10,6 +10,14 @@
 
 ---
 
+## 2026-04-22/23 — feature/scoping-assistant T1 법령 감사 FAIL → A안 채택 (세션 정리)
+- **완료**: 이전 세션에서 Office Hours + brainstorming + writing-plans 로 `docs/superpowers/specs/2026-04-22-scoping-assistant-design.md` + `docs/plans/feature-scoping-assistant.md` (v1, 26 task) 작성. 본 세션에서 FULL-AUTO DELEGATION 실행 중 Phase 2 T1 (법령 원문 대조) 에서 STOP GATE 발동 — spec §7 rule pack 의 4개 규칙 **모두** 법령 원문과 불일치. CRITICAL 2 (`capacity_mw>=10` 실제 100 MW, citation `별표2` 실제 `별표3`) + HIGH 2 (소규모 EIA 축이 면적·용도지역인데 발전용량으로 작성, `forest_conversion_ha>1` 실제 `>0.066 ha=660㎡`). 사용자가 A안(입력 스키마·rule pack 재설계) 채택. 산출물 5건 준비: `docs/findings/2026-04-22-scoping-rule-pack-legal-audit.md` (감사 리포트), `docs/office-hours/2026-04-23-scoping-assistant-v2-redesign.md` (Q1~Q10 설계 질문), `data/rules/scoping/reference/{README,MANIFEST}.md` (PDF 로컬 배치 정책, 재호스팅 금지), `.gitignore` 에 `data/rules/scoping/reference/*.pdf` 추가, `docs/issues/13-spec-law-audit-mandatory.md` (CLAUDE.md §9.3 ⑥ 항목 추가 제안). v1 산출물 (spec + plan) 은 본 WIP commit 에 그대로 포함, v2 작성 시 `-superseded-by-v2` suffix 로 rename 예정. push 금지 (CLAUDE.md §9.5 + 사용자 정책, 사용자가 `git show --stat` 확인 후 판단).
+- **배운 것**:
+  1. **법령 숫자는 원문 대조 없이 spec 에 박지 말 것.** 2차 자료 조사조차 없이 "그럴 것 같다" 로 작성된 4개 규칙이 모두 틀렸음.
+  2. **Office Hours 의 "미검증 가정 §0" 이 실제로 재앙 방지 방어선으로 작동.** spec §0 + §16 경고 + plan T1 BLOCKING task 가 3중 방어선을 형성했고, plan T1 이 실제 차단.
+  3. **Claude 와 사용자 양쪽 다 "그럴 것 같다" 로 지어내는 경향 있음.** CLAUDE.md §9.3 에 ⑥ "법령 숫자 원문 대조 여부" 항목을 추가해 체크포인트 명문화 필요 (issue 13).
+- **다음**: 사용자가 (a) 법제처 별표 PDF 3개 수동 다운로드 → `data/rules/scoping/reference/` 배치, (b) OH v2 Q1~Q10 답변. 완료 시 Claude 가 PDF 기반 T1 재감사 → spec v2 + plan v2 작성 → FULL-AUTO DELEGATION 재개.
+
 ## 2026-04-22 — v0 Cloudflare 배포 완료 + CSS/env fix 2건 + 후속 이슈 7건
 - 완료: Phase 0~8 전체. `https://eia-workbench-v0.pages.dev` 프로덕션. 두 건의 post-ship 수정 — `79a8a7b` CSS fix (layout frontmatter import + `scripts/check-build-css.sh` 2-signal CI verify), `0bfd35c` wrangler env fix (`[env.production.vars]` + 비상속 바인딩 재선언 + `scripts/check-wrangler-prod-vars.sh` 5-signal CI verify). Cleanup worker 별도 배포(cron `0 18 * * *`). 프로덕션 시크릿 창 스모크: 로그인 302 → 프로젝트 CRUD → 업/삭/복 → 드로어 전부 통과. Turnstile hostname `eia-workbench-v0.pages.dev` 단일 허용 적용 후에도 로그인 통과. systematic-debugging 으로 "대시보드 UI env 주입이 잠기는 이유" 근인 확정 (wrangler.toml `[vars]` 가 소스 오브 트루스로 고정되면 대시보드 plain var 편집 lockout). 계획 문서 fixup: §3.3 `_cf_KV` 주석 정정, §5.2 `--commit-dirty=true` 명시, §5.4 Turnstile hostname scope ≠ CSRF 경고, §4.A 변경 사유 주석. 스모크 플레이북 `docs/deploy/v0-smoke-playbook.md`, 후속 이슈 7건 `docs/issues/01-07.md` 작성.
 - 다음: `docs/issues/01-07` 7건을 GitHub Issues 로 올림 (P1: `02 preview APP_ORIGIN`, `03 prod-like E2E` 먼저). 이후 `feature/design-system` 오피스 아워 또는 housekeeping #40/#41 처리.
