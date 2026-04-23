@@ -5,9 +5,9 @@
 ## 배치 규칙
 
 1. **파일명 규칙**
-   - `enforcement-decree-eia-2025-02-18-annex-03.pdf` — 환경영향평가법 시행령 별표3 (환경영향평가 대상사업)
-   - `enforcement-decree-eia-2025-02-18-annex-04.pdf` — 환경영향평가법 시행령 별표4 (소규모 환경영향평가)
-   - `forest-management-act-enforcement-decree-YYYY-MM-DD-annex-XX.pdf` — 산지관리법 시행령 / 시행규칙
+   - `enforcement-decree-eia-YYYY-MM-DD-annex-NN.pdf` — 환경영향평가법 시행령 [별표 NN]
+   - `enforcement-decree-forest-management-act-YYYY-MM-DD-annex-NN.pdf` — 산지관리법 시행령 [별표 NN]
+   - `forest-management-act-enforcement-rules-YYYY-MM-DD-annex-NN.pdf` — 산지관리법 시행규칙 [별표 NN]
    - 날짜는 **법령 시행일자** (개정일자) 기준
 
 2. **출처**
@@ -21,17 +21,37 @@
 
 4. **git 추적 정책**
    - 초안 MVP 범위: PDF 파일은 **git 에 포함하지 않음** (용량, 저작권).
-   - `.gitignore` 에 `data/rules/scoping/reference/*.pdf` 추가.
-   - 대신 `data/rules/scoping/reference/MANIFEST.md` 에 "어떤 PDF 가 필요하고 어디서 받는지" 만 커밋.
+   - `.gitignore` 에 `data/rules/scoping/reference/*.pdf` 포함.
+   - 대신 본 README.md 에 "어떤 PDF 가 필요하고 어디서 받는지" 만 커밋.
 
-## 현재 필요 PDF (T1 재감사 전)
+## 현재 배치된 PDF (2026-04-23 T1 재감사 시점)
 
-- [ ] `enforcement-decree-eia-2025-02-18-annex-03.pdf`
-  - 출처: https://law.go.kr/flDownload.do?flSeq=34819077 (2026-04-22 기준 링크, 갱신 가능)
-- [ ] `enforcement-decree-eia-2025-02-18-annex-04.pdf`
+- [x] `enforcement-decree-eia-2025-02-18-annex-03.pdf`
+  - 환경영향평가법 시행령 [별표 3] — 환경영향평가 대상사업의 구체적인 종류, 범위 및 협의 요청시기
+  - 내용 개정일 표기: `<개정 2025. 9. 23.>`
+  - 출처: https://law.go.kr/flDownload.do?flSeq=34819077
+- [x] `enforcement-decree-eia-2025-10-01-annex-04.pdf`
+  - 환경영향평가법 시행령 [별표 4] — 소규모 환경영향평가 대상사업의 종류, 범위 및 협의 요청시기
+  - 내용 개정일 표기: `<개정 2025. 10. 1.>`
   - 출처: https://www.law.go.kr/LSW/flDownload.do?flSeq=41077151
+- [x] `enforcement-decree-forest-management-act-2023-06-07-annex-04.pdf`
+  - 산지관리법 시행령 [별표 4] — 산지전용허가기준의 적용범위와 사업별·규모별 세부기준 (제20조제6항 관련)
+  - 내용 개정일 표기: `<개정 2023. 6. 7.>`
+  - 출처: https://www.law.go.kr/ → 산지관리법 시행령 → 별표 4
+
+## 누락 상태 (향후 수령 대상)
+
 - [ ] `forest-management-act-enforcement-rules-YYYY-MM-DD-annex-04.pdf`
-  - 산지관리법 시행규칙 별표4 (허가기준 적용범위)
+  - 산지관리법 **시행규칙** [별표 4] — 산지전용허가기준 적용 세부기준 (**시행령** 과 구별)
+  - 시행령 별표 4 의 "660㎡ 이상 풍력발전시설은 산지전용타당성조사 대상" 조항과 연관된 시행규칙의 세부 기준이 있는지 확인 대상
+  - T1 재감사 시점에는 **시행령 별표 4 만으로 rule pack v2 작성 가능** 판단. 시행규칙 별표 4 는 후속 세부화 단계에서 수령
+
+## 파일명 정정 이력
+
+- 2026-04-23: 최초 수령된 3개 PDF 중 2개 파일명·내용 swap 발견 → 내용 기준 재명명 (아래 두 파일)
+  - 구 `enforcement-decree-eia-2025-02-18-annex-04.pdf.pdf` (실제 내용=산지관리법 시행령 별표4) → 신 `enforcement-decree-forest-management-act-2023-06-07-annex-04.pdf.pdf`
+  - 구 `forest-management-act-enforcement-rules-YYYY-MM-DD-annex-04.pdf.pdf` (실제 내용=환경영향평가법 시행령 별표4) → 신 `enforcement-decree-eia-2025-10-01-annex-04.pdf.pdf`
+- 확장자 `.pdf.pdf` 이중 확장자는 원본 저장 상태 유지 (재편집 금지 원칙)
 
 ## 갱신 주기
 

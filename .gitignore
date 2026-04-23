@@ -44,3 +44,4 @@ test-results/
 
 # 빌드 stamp (deploy byte-difference 강제용, docs/issues/06 참조)
 public/.build-version
+NOTES-LOCAL.md
