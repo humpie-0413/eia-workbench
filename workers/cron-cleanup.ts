@@ -5,19 +5,23 @@ type Alert = (e: Record<string, unknown>) => void;
 export type CleanupEnv = { DB: D1Database; UPLOADS: R2Bucket };
 
 export async function runCleanup(env: CleanupEnv, alert: Alert): Promise<void> {
-  // Fix 7 (N1): Parallelize the two COUNT queries
-  const [pRow, uRow] = await Promise.all([
+  // Fix 7 (N1): Parallelize the three COUNT queries (projects, uploads, scoping_runs)
+  const [pRow, uRow, sRow] = await Promise.all([
     env.DB.prepare(
       `SELECT COUNT(*) AS n FROM projects WHERE deleted_at IS NOT NULL AND deleted_at < datetime('now','-30 days')`
     ).first<{ n: number }>(),
     env.DB.prepare(
       `SELECT COUNT(*) AS n FROM uploads WHERE deleted_at IS NOT NULL AND deleted_at < datetime('now','-30 days')`
+    ).first<{ n: number }>(),
+    env.DB.prepare(
+      `SELECT COUNT(*) AS n FROM scoping_runs WHERE deleted_at IS NOT NULL AND deleted_at < datetime('now','-30 days')`
     ).first<{ n: number }>()
   ]);
   const pCount = pRow?.n ?? 0;
   const uCount = uRow?.n ?? 0;
+  const sCount = sRow?.n ?? 0;
 
-  const total = pCount + uCount;
+  const total = pCount + uCount + sCount;
   if (total > CRON_HARD_DELETE_ROW_CEILING) {
     alert({ level: 'error', reason: 'cron_row_ceiling_exceeded', total });
     return;
@@ -60,6 +64,10 @@ export async function runCleanup(env: CleanupEnv, alert: Alert): Promise<void> {
     'd1_delete_projects_failed'
   );
   await runDelete(
+    `DELETE FROM scoping_runs WHERE deleted_at IS NOT NULL AND deleted_at < datetime('now','-30 days')`,
+    'd1_delete_scoping_runs_failed'
+  );
+  await runDelete(
     `DELETE FROM login_attempts WHERE ts < datetime('now','-30 days')`,
     'd1_delete_login_attempts_failed'
   );
@@ -69,7 +77,8 @@ export async function runCleanup(env: CleanupEnv, alert: Alert): Promise<void> {
     level: 'info',
     reason: 'cron_cleanup_ok',
     projectsCount: pCount,
-    uploadsCount: uCount
+    uploadsCount: uCount,
+    scopingRunsCount: sCount
   });
 }
 

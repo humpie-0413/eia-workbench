@@ -17,7 +17,8 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "db:migrate:local": "wrangler d1 migrations apply DB --local",
-    "assertion-grep": "bash scripts/assertion-grep.sh"
+    "assertion-grep": "bash scripts/assertion-grep.sh",
+    "verify:rule-pack-audit": "node scripts/verify-rule-pack-audit.mjs"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^12.0.0",
