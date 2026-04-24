@@ -20,6 +20,10 @@ bucket_name = "eia-workbench-v0-uploads"
 APP_ORIGIN = "http://localhost:3000"
 TURNSTILE_SITE_KEY = "1x00000000000000000000AA"  # Cloudflare always-pass test key
 
+# Secrets — [vars] 에 평문 금지. `wrangler pages secret put <KEY>` 로 주입.
+# - APP_PASSWORD, JWT_SECRET, TURNSTILE_SECRET_KEY (기존)
+# - SERVICE_KEY: 공공데이터포털 data.go.kr 일반 인증키. 상세: docs/adr/0001-eia-api-source.md
+
 # Production environment — applied on `wrangler pages deploy --branch=main`.
 # Cloudflare bindings (d1_databases, r2_buckets, vars) are non-inheritable:
 # overriding vars under env.production forces restating D1 + R2 with identical

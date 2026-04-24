@@ -1,0 +1,16 @@
+{
+  "name": "@eia-workbench/eia-data",
+  "version": "0.1.0",
+  "private": true,
+  "description": "data.go.kr (공공데이터포털, KEI) 클라이언트 — 환경영향평가 공공 데이터 조회. 스캐폴딩, 실제 API 호출 미구현 (다음 feature 에서 채움).",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "files": ["src", "tests", "README.md"]
+}

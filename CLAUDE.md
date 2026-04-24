@@ -17,6 +17,7 @@
 - 프런트엔드: **Astro 5 + React islands** (정적 우선, 인터랙션 필요 컴포넌트만 island)
 - 대상 업종 1개: **육상풍력**
 - 배포: Cloudflare Pages + Workers + D1 + R2 + Turnstile (무료 구간)
+- 환경영향평가 공공 데이터: **data.go.kr** (KEI 제공 OpenAPI 20종). 인증키 `SERVICE_KEY` (Cloudflare Secret). 상세: `docs/adr/0001-eia-api-source.md`
 - 문서·규칙 데이터: `/data/rules`, `/data/templates` (JSON/YAML)
 - 셸: Git Bash (Windows) 기본. WSL2 허용. PowerShell/cmd 전용 명령은 쓰지 않는다.
 
