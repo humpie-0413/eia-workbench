@@ -1,5 +1,9 @@
 import yaml from 'js-yaml';
-import type { Citation, AnalysisResultKind, ScopingRuleCategory } from '../../lib/types/analysis-result';
+import type {
+  Citation,
+  AnalysisResultKind,
+  ScopingRuleCategory
+} from '../../lib/types/analysis-result';
 
 export interface RulePackAudit {
   findings_doc: string;
@@ -49,9 +53,7 @@ export function loadRulePackFromString(text: string): RulePack {
     throw new Error('rule pack: YAML root must be an object');
   }
   if (!parsed.rule_pack_audit) {
-    throw new Error(
-      'rule pack: rule_pack_audit meta 누락 (issue #13 — 법령 숫자 원문 대조 의무)',
-    );
+    throw new Error('rule pack: rule_pack_audit meta 누락 (issue #13 — 법령 숫자 원문 대조 의무)');
   }
   if (!Array.isArray(parsed.rules)) {
     throw new Error('rule pack: rules must be an array');
@@ -63,7 +65,7 @@ export function validateAudit(pack: RulePack): void {
   const v = pack.rule_pack_audit.audit_verdict;
   if (v !== 'PASS') {
     throw new Error(
-      `rule pack audit FAIL: verdict=${v} (PASS 아니면 engine 실행 거부 — issue #13)`,
+      `rule pack audit FAIL: verdict=${v} (PASS 아니면 engine 실행 거부 — issue #13)`
     );
   }
 }

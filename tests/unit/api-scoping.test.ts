@@ -39,7 +39,13 @@ function memDb(projectCapacity: number | null = null) {
           return {
             async run() {
               if (isInsertRun) {
-                const [id, project_id, version, input_json, output_json] = args as string[];
+                const [id, project_id, version, input_json, output_json] = args as [
+                  string,
+                  string,
+                  string,
+                  string,
+                  string,
+                ];
                 runs[id] = {
                   id,
                   project_id,
@@ -51,9 +57,10 @@ function memDb(projectCapacity: number | null = null) {
                 };
               }
               if (isSoftDelete) {
-                const [runId, pid] = args as string[];
-                if (runs[runId] && runs[runId].project_id === pid) {
-                  runs[runId].deleted_at = new Date().toISOString();
+                const [runId, pid] = args as [string, string];
+                const existing = runs[runId];
+                if (existing && existing.project_id === pid) {
+                  existing.deleted_at = new Date().toISOString();
                 }
               }
               return { success: true };
@@ -73,7 +80,7 @@ function memDb(projectCapacity: number | null = null) {
                 return (list[0] ?? null) as T | null;
               }
               if (isSelectOne) {
-                const [runId, pid] = args as string[];
+                const [runId, pid] = args as [string, string];
                 const r = runs[runId];
                 if (!r || r.project_id !== pid || r.deleted_at) return null as T | null;
                 return r as unknown as T;

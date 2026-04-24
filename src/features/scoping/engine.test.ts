@@ -48,7 +48,7 @@ describe('engine — rule 2 (small_eia_conservation, 5000㎡)', () => {
   it('zone=conservation, area=4999 → not triggered', () => {
     const r = evalRule(
       { land_use_zone: 'conservation_management', site_area_m2: 4999 },
-      'small_eia_conservation',
+      'small_eia_conservation'
     );
     expect(r.triggered).toBe(false);
   });
@@ -56,7 +56,7 @@ describe('engine — rule 2 (small_eia_conservation, 5000㎡)', () => {
   it('zone=conservation, area=5000 (boundary) → triggered', () => {
     const r = evalRule(
       { land_use_zone: 'conservation_management', site_area_m2: 5000 },
-      'small_eia_conservation',
+      'small_eia_conservation'
     );
     expect(r.triggered).toBe(true);
     expect(r.result).toBe('likely_applicable');
@@ -65,7 +65,7 @@ describe('engine — rule 2 (small_eia_conservation, 5000㎡)', () => {
   it('zone=planning, area=5000 → not triggered (equals false)', () => {
     const r = evalRule(
       { land_use_zone: 'planning_management', site_area_m2: 5000 },
-      'small_eia_conservation',
+      'small_eia_conservation'
     );
     expect(r.triggered).toBe(false);
   });
@@ -81,7 +81,7 @@ describe('engine — rule 3 (small_eia_planning, 10000㎡)', () => {
   it('zone=planning, area=9999 → not triggered', () => {
     const r = evalRule(
       { land_use_zone: 'planning_management', site_area_m2: 9999 },
-      'small_eia_planning',
+      'small_eia_planning'
     );
     expect(r.triggered).toBe(false);
   });
@@ -89,7 +89,7 @@ describe('engine — rule 3 (small_eia_planning, 10000㎡)', () => {
   it('zone=planning, area=10000 (boundary) → triggered', () => {
     const r = evalRule(
       { land_use_zone: 'planning_management', site_area_m2: 10000 },
-      'small_eia_planning',
+      'small_eia_planning'
     );
     expect(r.triggered).toBe(true);
   });
@@ -97,7 +97,7 @@ describe('engine — rule 3 (small_eia_planning, 10000㎡)', () => {
   it('zone=conservation, area=15000 → not triggered (zone equals false)', () => {
     const r = evalRule(
       { land_use_zone: 'conservation_management', site_area_m2: 15000 },
-      'small_eia_planning',
+      'small_eia_planning'
     );
     expect(r.triggered).toBe(false);
   });
@@ -107,7 +107,7 @@ describe('engine — rule 4 (small_eia_other_zones, gte_by_zone)', () => {
   it('zone=agricultural_forestry, area=7500 (boundary) → triggered', () => {
     const r = evalRule(
       { land_use_zone: 'agricultural_forestry', site_area_m2: 7500 },
-      'small_eia_other_zones',
+      'small_eia_other_zones'
     );
     expect(r.triggered).toBe(true);
   });
@@ -115,7 +115,7 @@ describe('engine — rule 4 (small_eia_other_zones, gte_by_zone)', () => {
   it('zone=agricultural_forestry, area=7499 → not triggered', () => {
     const r = evalRule(
       { land_use_zone: 'agricultural_forestry', site_area_m2: 7499 },
-      'small_eia_other_zones',
+      'small_eia_other_zones'
     );
     expect(r.triggered).toBe(false);
   });
@@ -123,7 +123,7 @@ describe('engine — rule 4 (small_eia_other_zones, gte_by_zone)', () => {
   it('zone=natural_environment_conservation, area=5000 (boundary) → triggered', () => {
     const r = evalRule(
       { land_use_zone: 'natural_environment_conservation', site_area_m2: 5000 },
-      'small_eia_other_zones',
+      'small_eia_other_zones'
     );
     expect(r.triggered).toBe(true);
   });
@@ -131,7 +131,7 @@ describe('engine — rule 4 (small_eia_other_zones, gte_by_zone)', () => {
   it('zone=natural_environment_conservation, area=4999 → not triggered', () => {
     const r = evalRule(
       { land_use_zone: 'natural_environment_conservation', site_area_m2: 4999 },
-      'small_eia_other_zones',
+      'small_eia_other_zones'
     );
     expect(r.triggered).toBe(false);
   });
@@ -139,7 +139,7 @@ describe('engine — rule 4 (small_eia_other_zones, gte_by_zone)', () => {
   it('zone=production_management, area=7500 (boundary) → triggered', () => {
     const r = evalRule(
       { land_use_zone: 'production_management', site_area_m2: 7500 },
-      'small_eia_other_zones',
+      'small_eia_other_zones'
     );
     expect(r.triggered).toBe(true);
   });
@@ -147,7 +147,7 @@ describe('engine — rule 4 (small_eia_other_zones, gte_by_zone)', () => {
   it('zone=production_management, area=7499 → not triggered', () => {
     const r = evalRule(
       { land_use_zone: 'production_management', site_area_m2: 7499 },
-      'small_eia_other_zones',
+      'small_eia_other_zones'
     );
     expect(r.triggered).toBe(false);
   });
@@ -155,7 +155,7 @@ describe('engine — rule 4 (small_eia_other_zones, gte_by_zone)', () => {
   it('zone=conservation_management, area=100000 → zone_mismatch (one_of fails)', () => {
     const r = evalRule(
       { land_use_zone: 'conservation_management', site_area_m2: 100000 },
-      'small_eia_other_zones',
+      'small_eia_other_zones'
     );
     expect(r.triggered).toBe(false);
     expect(r.skip_reason).toBe('zone_mismatch');
@@ -164,7 +164,7 @@ describe('engine — rule 4 (small_eia_other_zones, gte_by_zone)', () => {
   it('zone=planning_management, area=100000 → zone_mismatch', () => {
     const r = evalRule(
       { land_use_zone: 'planning_management', site_area_m2: 100000 },
-      'small_eia_other_zones',
+      'small_eia_other_zones'
     );
     expect(r.skip_reason).toBe('zone_mismatch');
   });
@@ -200,7 +200,7 @@ describe('engine — all rules return needsHumanReview: true', () => {
       land_use_zone: 'conservation_management',
       site_area_m2: 10000,
       forest_conversion_m2: 800,
-      capacity_mw: 120,
+      capacity_mw: 120
     });
     expect(results).toHaveLength(5);
     for (const r of results) {
@@ -213,47 +213,48 @@ describe('engine — all rules return needsHumanReview: true', () => {
 describe('evalCondition — operator coverage', () => {
   it('gt operator — value > threshold', () => {
     expect(evalCondition({ gt: { field: 'capacity_mw', value: 50 } }, { capacity_mw: 60 })).toEqual(
-      { kind: 'true' },
+      { kind: 'true' }
     );
     expect(evalCondition({ gt: { field: 'capacity_mw', value: 60 } }, { capacity_mw: 60 })).toEqual(
-      { kind: 'false' },
+      { kind: 'false' }
     );
   });
 
   it('lt operator — value < threshold', () => {
-    expect(evalCondition({ lt: { field: 'capacity_mw', value: 100 } }, { capacity_mw: 50 })).toEqual(
-      { kind: 'true' },
-    );
+    expect(
+      evalCondition({ lt: { field: 'capacity_mw', value: 100 } }, { capacity_mw: 50 })
+    ).toEqual({ kind: 'true' });
     expect(evalCondition({ lt: { field: 'capacity_mw', value: 50 } }, { capacity_mw: 50 })).toEqual(
-      { kind: 'false' },
+      { kind: 'false' }
     );
   });
 
   it('lte operator — value <= threshold', () => {
-    expect(evalCondition({ lte: { field: 'capacity_mw', value: 50 } }, { capacity_mw: 50 })).toEqual(
-      { kind: 'true' },
-    );
+    expect(
+      evalCondition({ lte: { field: 'capacity_mw', value: 50 } }, { capacity_mw: 50 })
+    ).toEqual({ kind: 'true' });
   });
 
   it('lt/lte/gt — undefined field → skip', () => {
     expect(evalCondition({ lt: { field: 'capacity_mw', value: 50 } }, {})).toEqual({
       kind: 'skip',
-      reason: 'input_undefined',
+      reason: 'input_undefined'
     });
   });
 
   it('equals operator with undefined → skip', () => {
-    expect(
-      evalCondition({ equals: { field: 'land_use_zone', value: 'x' } }, {}),
-    ).toEqual({ kind: 'skip', reason: 'input_undefined' });
+    expect(evalCondition({ equals: { field: 'land_use_zone', value: 'x' } }, {})).toEqual({
+      kind: 'skip',
+      reason: 'input_undefined'
+    });
   });
 
   it('unsupported operator throws', () => {
     expect(() =>
       evalCondition(
         { nonsense: { field: 'x', value: 1 } } as unknown as Parameters<typeof evalCondition>[0],
-        {},
-      ),
+        {}
+      )
     ).toThrow();
   });
 });

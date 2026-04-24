@@ -1,9 +1,4 @@
-import type {
-  RulePack,
-  Rule,
-  WhenClause,
-  RuleOutcome,
-} from './rule-pack-loader';
+import type { RulePack, Rule, WhenClause, RuleOutcome } from './rule-pack-loader';
 import type { ScopingResult, ScopingSkipReason } from '../../lib/types/analysis-result';
 
 export interface EvalInput {
@@ -22,30 +17,26 @@ export function evaluate(pack: RulePack, input: EvalInput): ScopingResult[] {
   return pack.rules.map((rule) => evaluateOne(rule, input, pack.version));
 }
 
-function evaluateOne(
-  rule: Rule,
-  input: EvalInput,
-  rule_pack_version: string,
-): ScopingResult {
+function evaluateOne(rule: Rule, input: EvalInput, rule_pack_version: string): ScopingResult {
   const cond = evalCondition(rule.when, input);
 
   if (cond.kind === 'skip') {
     return buildResult(rule, rule_pack_version, rule.onFalse, {
       triggered: false,
       override: 'skipped',
-      skip_reason: cond.reason,
+      skip_reason: cond.reason
     });
   }
 
   if (cond.kind === 'true') {
     return buildResult(rule, rule_pack_version, rule.onTrue, {
-      triggered: true,
+      triggered: true
     });
   }
 
   return buildResult(rule, rule_pack_version, rule.onFalse, {
     triggered: false,
-    skip_reason: 'condition_not_met',
+    skip_reason: 'condition_not_met'
   });
 }
 
@@ -53,7 +44,7 @@ function buildResult(
   rule: Rule,
   rule_pack_version: string,
   outcome: RuleOutcome,
-  flags: { triggered: boolean; override?: 'skipped'; skip_reason?: ScopingSkipReason },
+  flags: { triggered: boolean; override?: 'skipped'; skip_reason?: ScopingSkipReason }
 ): ScopingResult {
   return {
     ruleId: rule.id,
@@ -66,7 +57,7 @@ function buildResult(
     limits: outcome.limits,
     needsHumanReview: true,
     triggered: flags.triggered,
-    ...(flags.skip_reason ? { skip_reason: flags.skip_reason } : {}),
+    ...(flags.skip_reason ? { skip_reason: flags.skip_reason } : {})
   };
 }
 

@@ -1,9 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type {
-  Citation,
-  StandardAnalysisResult,
-  ScopingResult,
-} from './analysis-result';
+import type { Citation, StandardAnalysisResult, ScopingResult } from './analysis-result';
 
 describe('analysis-result types', () => {
   it('Citation shape compiles', () => {
@@ -11,7 +7,7 @@ describe('analysis-result types', () => {
       id: 'eia_decree_annex3',
       title: '환경영향평가법 시행령 별표 3',
       refLink: 'https://law.go.kr/',
-      citation_url: 'https://www.law.go.kr/LSW/flDownload.do?flSeq=34819077',
+      citation_url: 'https://www.law.go.kr/LSW/flDownload.do?flSeq=34819077'
     };
     expect(c.id).toBe('eia_decree_annex3');
   });
@@ -22,7 +18,7 @@ describe('analysis-result types', () => {
       basis: [],
       assumptions: [],
       limits: [],
-      needsHumanReview: true,
+      needsHumanReview: true
     };
     expect(r.needsHumanReview).toBe(true);
   });
@@ -39,7 +35,7 @@ describe('analysis-result types', () => {
       limits: [],
       needsHumanReview: true,
       triggered: false,
-      skip_reason: 'input_undefined',
+      skip_reason: 'input_undefined'
     };
     expect(sr.triggered).toBe(false);
     expect(sr.skip_reason).toBe('input_undefined');
@@ -51,7 +47,7 @@ describe('analysis-result types', () => {
       'needs_check',
       'likely_not_applicable',
       'unknown',
-      'skipped',
+      'skipped'
     ];
     expect(values).toHaveLength(5);
   });

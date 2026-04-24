@@ -19,7 +19,7 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
   if (projectId === undefined) return new Response('bad request', { status: 400 });
 
   const project = await env.DB.prepare(
-    `SELECT id, capacity_mw FROM projects WHERE id = ? AND deleted_at IS NULL`,
+    `SELECT id, capacity_mw FROM projects WHERE id = ? AND deleted_at IS NULL`
   )
     .bind(projectId)
     .first<ProjectRow>();
@@ -36,17 +36,20 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
   if (!parsed.success) {
     return new Response(JSON.stringify({ error: 'invalid_input', issues: parsed.error.issues }), {
       status: 400,
-      headers: { 'content-type': 'application/json' },
+      headers: { 'content-type': 'application/json' }
     });
   }
 
   const pack = getOnshoreWindRulePack();
 
+  const capacityValue = parsed.data.capacity_mw_override ?? project.capacity_mw ?? undefined;
   const evalInput: EvalInput = {
     site_area_m2: parsed.data.site_area_m2,
     land_use_zone: parsed.data.land_use_zone,
-    forest_conversion_m2: parsed.data.forest_conversion_m2,
-    capacity_mw: parsed.data.capacity_mw_override ?? project.capacity_mw ?? undefined,
+    ...(parsed.data.forest_conversion_m2 !== undefined
+      ? { forest_conversion_m2: parsed.data.forest_conversion_m2 }
+      : {}),
+    ...(capacityValue !== undefined ? { capacity_mw: capacityValue } : {})
   };
 
   const results = evaluate(pack, evalInput);
@@ -54,7 +57,7 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
   const runId = newScopingRunId();
   await env.DB.prepare(
     `INSERT INTO scoping_runs (id, project_id, rule_pack_version, input_json, output_json)
-     VALUES (?, ?, ?, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?)`
   )
     .bind(runId, projectId, pack.version, JSON.stringify(parsed.data), JSON.stringify(results))
     .run();
@@ -64,13 +67,13 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
     method: 'POST',
     status: 201,
     latencyMs: Date.now() - t0,
-    jti,
+    jti
   });
 
-  return new Response(
-    JSON.stringify({ runId, rule_pack_version: pack.version, results }),
-    { status: 201, headers: { 'content-type': 'application/json' } },
-  );
+  return new Response(JSON.stringify({ runId, rule_pack_version: pack.version, results }), {
+    status: 201,
+    headers: { 'content-type': 'application/json' }
+  });
 };
 
 export const GET: APIRoute = async ({ params, locals }) => {
@@ -86,7 +89,7 @@ export const GET: APIRoute = async ({ params, locals }) => {
        FROM scoping_runs
       WHERE project_id = ? AND deleted_at IS NULL
       ORDER BY created_at DESC
-      LIMIT 1`,
+      LIMIT 1`
   )
     .bind(projectId)
     .first<{
@@ -102,7 +105,7 @@ export const GET: APIRoute = async ({ params, locals }) => {
     method: 'GET',
     status: 200,
     latencyMs: Date.now() - t0,
-    jti,
+    jti
   });
 
   if (!row) return Response.json({ run: null });
@@ -113,7 +116,7 @@ export const GET: APIRoute = async ({ params, locals }) => {
       rule_pack_version: row.rule_pack_version,
       input: JSON.parse(row.input_json),
       results: JSON.parse(row.output_json),
-      created_at: row.created_at,
-    },
+      created_at: row.created_at
+    }
   });
 };

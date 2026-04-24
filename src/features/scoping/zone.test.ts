@@ -9,7 +9,7 @@ describe('land_use_zone', () => {
       'production_management',
       'planning_management',
       'agricultural_forestry',
-      'natural_environment_conservation',
+      'natural_environment_conservation'
     ]);
   });
 
@@ -19,7 +19,7 @@ describe('land_use_zone', () => {
       ['production_management', '생산관리지역'],
       ['planning_management', '계획관리지역'],
       ['agricultural_forestry', '농림지역'],
-      ['natural_environment_conservation', '자연환경보전지역'],
+      ['natural_environment_conservation', '자연환경보전지역']
     ];
     for (const [zone, label] of cases) {
       expect(zoneLabelKo(zone)).toBe(label);

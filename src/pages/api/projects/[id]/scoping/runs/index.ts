@@ -14,7 +14,7 @@ export const GET: APIRoute = async ({ params, locals }) => {
        FROM scoping_runs
       WHERE project_id = ? AND deleted_at IS NULL
       ORDER BY created_at DESC
-      LIMIT 20`,
+      LIMIT 20`
   )
     .bind(projectId)
     .all<{ id: string; rule_pack_version: string; created_at: string }>();
@@ -24,7 +24,7 @@ export const GET: APIRoute = async ({ params, locals }) => {
     method: 'GET',
     status: 200,
     latencyMs: Date.now() - t0,
-    jti,
+    jti
   });
 
   return Response.json({ runs: results ?? [] });

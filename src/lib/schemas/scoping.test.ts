@@ -6,7 +6,7 @@ describe('scopingInputSchema', () => {
     const r = scopingInputSchema.safeParse({
       site_area_m2: 5000,
       site_area_input_unit: 'sqm',
-      land_use_zone: 'conservation_management',
+      land_use_zone: 'conservation_management'
     });
     expect(r.success).toBe(true);
   });
@@ -19,7 +19,7 @@ describe('scopingInputSchema', () => {
       forest_conversion_m2: 700,
       forest_conversion_input_unit: 'sqm',
       capacity_mw_override: 50,
-      notes: 'test',
+      notes: 'test'
     });
     expect(r.success).toBe(true);
   });
@@ -28,7 +28,7 @@ describe('scopingInputSchema', () => {
     const r = scopingInputSchema.safeParse({
       site_area_m2: -1,
       site_area_input_unit: 'sqm',
-      land_use_zone: 'conservation_management',
+      land_use_zone: 'conservation_management'
     });
     expect(r.success).toBe(false);
   });
@@ -37,7 +37,7 @@ describe('scopingInputSchema', () => {
     const r = scopingInputSchema.safeParse({
       site_area_m2: 1,
       site_area_input_unit: 'sqm',
-      land_use_zone: 'residential_zone',
+      land_use_zone: 'residential_zone'
     });
     expect(r.success).toBe(false);
   });
@@ -46,7 +46,7 @@ describe('scopingInputSchema', () => {
     const r = scopingInputSchema.safeParse({
       site_area_m2: 10_000_001,
       site_area_input_unit: 'sqm',
-      land_use_zone: 'conservation_management',
+      land_use_zone: 'conservation_management'
     });
     expect(r.success).toBe(false);
   });
@@ -55,7 +55,7 @@ describe('scopingInputSchema', () => {
     const r = scopingInputSchema.safeParse({
       site_area_m2: 100,
       site_area_input_unit: 'sqm',
-      land_use_zone: 'conservation_management',
+      land_use_zone: 'conservation_management'
     });
     expect(r.success).toBe(true);
     if (r.success) {
@@ -70,7 +70,7 @@ describe('scopingInputSchema', () => {
       site_area_m2: 1,
       site_area_input_unit: 'sqm',
       land_use_zone: 'conservation_management',
-      notes: 'x'.repeat(1001),
+      notes: 'x'.repeat(1001)
     });
     expect(r.success).toBe(false);
   });

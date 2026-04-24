@@ -22,10 +22,7 @@ export interface StandardAnalysisResult {
 
 export type ScopingRuleCategory = 'eia_target' | 'small_eia' | 'forest_conversion';
 
-export type ScopingSkipReason =
-  | 'input_undefined'
-  | 'zone_mismatch'
-  | 'condition_not_met';
+export type ScopingSkipReason = 'input_undefined' | 'zone_mismatch' | 'condition_not_met';
 
 export interface ScopingResult extends StandardAnalysisResult {
   ruleId: string;

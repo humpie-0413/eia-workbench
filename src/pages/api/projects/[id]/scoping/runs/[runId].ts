@@ -14,7 +14,7 @@ export const GET: APIRoute = async ({ params, locals }) => {
   const row = await env.DB.prepare(
     `SELECT id, rule_pack_version, input_json, output_json, created_at
        FROM scoping_runs
-      WHERE id = ? AND project_id = ? AND deleted_at IS NULL`,
+      WHERE id = ? AND project_id = ? AND deleted_at IS NULL`
   )
     .bind(runId, projectId)
     .first<{
@@ -32,7 +32,7 @@ export const GET: APIRoute = async ({ params, locals }) => {
     method: 'GET',
     status: 200,
     latencyMs: Date.now() - t0,
-    jti,
+    jti
   });
 
   return Response.json({
@@ -41,8 +41,8 @@ export const GET: APIRoute = async ({ params, locals }) => {
       rule_pack_version: row.rule_pack_version,
       input: JSON.parse(row.input_json),
       results: JSON.parse(row.output_json),
-      created_at: row.created_at,
-    },
+      created_at: row.created_at
+    }
   });
 };
 
@@ -58,7 +58,7 @@ export const DELETE: APIRoute = async ({ params, locals }) => {
 
   await env.DB.prepare(
     `UPDATE scoping_runs SET deleted_at = datetime('now')
-      WHERE id = ? AND project_id = ? AND deleted_at IS NULL`,
+      WHERE id = ? AND project_id = ? AND deleted_at IS NULL`
   )
     .bind(runId, projectId)
     .run();
@@ -68,7 +68,7 @@ export const DELETE: APIRoute = async ({ params, locals }) => {
     method: 'DELETE',
     status: 204,
     latencyMs: Date.now() - t0,
-    jti,
+    jti
   });
 
   return new Response(null, { status: 204 });

@@ -1,0 +1,75 @@
+---
+import AppLayout from '@/layouts/AppLayout.astro';
+import ScopingForm from '@/components/scoping/ScopingForm';
+import ScopingResults from '@/components/scoping/ScopingResults';
+import RunHistoryList from '@/components/scoping/RunHistoryList';
+
+const env = Astro.locals.runtime.env;
+const id = Astro.params.id;
+if (id === undefined) return new Response('bad request', { status: 400 });
+const project = await env.DB.prepare(
+  `SELECT id, name, industry, site_region, site_sub_region, capacity_mw, created_at
+   FROM projects WHERE id = ? AND deleted_at IS NULL`
+)
+  .bind(id)
+  .first<{
+    id: string;
+    name: string;
+    industry: string;
+    site_region: string | null;
+    site_sub_region: string | null;
+    capacity_mw: number | null;
+    created_at: string;
+  }>();
+if (!project) return new Response('not found', { status: 404 });
+
+const region =
+  [project.site_region, project.site_sub_region].filter(Boolean).join(' · ') || '지역 미지정';
+---
+
+<AppLayout title={`${project.name} · 스코핑 · eia-workbench`}>
+  <nav class="mb-3 text-small text-text-tertiary">
+    <a href={`/projects/${project.id}`} class="hover:text-text-primary">← {project.name}</a>
+  </nav>
+  <header class="mb-6">
+    <h1 class="text-display">스코핑 검토 보조</h1>
+    <p class="mt-2 text-small text-text-secondary">
+      <span class="mr-2 inline-block rounded border border-border px-2 py-0.5">육상풍력</span>
+      {region}
+      {project.capacity_mw != null && <span class="ml-2">· {project.capacity_mw} MW</span>}
+    </p>
+  </header>
+
+  <div role="tablist" aria-label="프로젝트 섹션" class="mb-6 flex gap-1 border-b border-border">
+    <a
+      href={`/projects/${project.id}`}
+      role="tab"
+      aria-selected="false"
+      class="h-9 px-4 text-text-secondary hover:text-text-primary">자료</a
+    >
+    <a
+      href={`/projects/${project.id}/scoping`}
+      role="tab"
+      aria-selected="true"
+      class="h-9 border-b-2 border-primary px-4 text-primary">스코핑</a
+    >
+  </div>
+
+  <aside
+    class="mb-6 rounded-md border border-warning bg-warning-bg px-4 py-3 text-small text-text-primary"
+    aria-label="스코핑 한계 고지"
+  >
+    본 결과는 법령·지침 기반 자동 체크 보조입니다. 법적 결론이 아니며, 현지조사와 전문가 확인이
+    별도로 필요합니다. 결과 객체는 항상 근거·가정·한계·사람 검토 필요 4필드를 함께 표시합니다.
+  </aside>
+
+  <div class="grid gap-6 lg:grid-cols-[320px_1fr]">
+    <section aria-label="입력 및 과거 실행" class="space-y-6">
+      <ScopingForm client:load projectId={project.id} projectCapacityMw={project.capacity_mw} />
+      <RunHistoryList client:load projectId={project.id} />
+    </section>
+    <section aria-label="검토 결과" class="min-w-0">
+      <ScopingResults client:load projectId={project.id} />
+    </section>
+  </div>
+</AppLayout>
