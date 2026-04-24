@@ -10,6 +10,10 @@
 
 ---
 
+## 2026-04-24 — feature/scoping-assistant-v2 Phase 5 완료 (FULL-AUTO)
+- **완료**: Phase 5 UI T14-T20 — `/projects/[id]/scoping` SSR (AppLayout + 탭 + 법적 한계 고지 aside), ScopingForm + AreaInput + ScopingResults(발동은 노출, 스킵은 `<details>` 아코디언) + RunHistoryList (CustomEvent `scoping:run` / `scoping:load-run` 기반 cross-island 상태), prompt-generator.ts (Claude 수동 분석 M-B 템플릿 + CLAUDE.md §2 단정 금지 문구) + prompts/scoping-manual.md, csv-export.ts (RFC 4180 + CRLF + pipe 다값) + markdown-export.ts (법적 한계 고지 + 발동/스킵 섹션), DESIGN.md §2.1 5종 배지 토큰 (WCAG AA ≥ 4.5:1). 188/188 test (12 신규), typecheck 0, lint clean. commit 2: `94a6b0a` (배지 토큰) + `0b555dc` (UI/export/prompt).
+- **다음**: Phase 6 (Cron + lint + build verify T21-T23) — workers/cron-cleanup.ts 에 scoping_runs 30일 하드삭제 확장 + CEILING 1000 guard, lint-copy.ts 로 YAML 단정 표현 grep, scripts/verify-rule-pack-audit.ts + CI step.
+
 ## 2026-04-24 — feature/scoping-assistant-v2 Phase 1~4 완료 (FULL-AUTO)
 - **완료**: plan v2 기반 자율 실행 Phase 1 (DSL decision doc + js-yaml T2), Phase 2 (units/zone/analysis-result/scoping schema + migration 0002 T3-T7), Phase 3 (rule-pack-loader + engine 6 operators + onshore_wind.v2.yaml 5 rules T8-T10), Phase 4 (POST/GET /api/projects/[id]/scoping + runs list + [runId] detail/soft-delete T11-T13). 테스트 그린: engine 케이스 + api-scoping 8 케이스 (memDb mock). commit 4 (`bc90c3c`): Phase 4 API 엔드포인트.
 - **다음**: Phase 5 (UI T14-T20: Astro SSR + ScopingForm + AreaInput + ScopingResults + RunHistoryList + CSV/Markdown export + Claude prompt generator + DESIGN.md badge tokens) 착수.
