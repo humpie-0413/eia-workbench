@@ -10,6 +10,10 @@
 
 ---
 
+## 2026-04-24 — feature/scoping-assistant-v2 Phase 6 완료 (FULL-AUTO)
+- **완료**: Phase 6 T21-T23 — workers/cron-cleanup.ts 에 scoping_runs 30일 하드삭제 추가 (3번째 COUNT 병렬화 + CEILING 1000 total 확장 + 에러 격리 유지), scripts/assertion-grep.sh 에 `data/rules/**/*.yaml` 스캔 브랜치 (prompt-generator.ts / markdown-export.test.ts 는 의도적 guardrail 문자열로 예외), scripts/verify-rule-pack-audit.mjs (issue #13 trip-wire: audit_verdict=PASS + findings_doc + source_pdfs 디스크 존재 검증) + CI step + `npm run verify:rule-pack-audit`. 193/193 test (6 신규). commit 1: `f4b19cb`.
+- **다음**: Phase 7 (E2E + reports T24-T33) — 5 E2E spec 작성 (happy/unit-toggle/accordion/copy-prompt+history), axe-smoke 경로 확장, `/design-review` 실행, 도메인 리뷰 (§9.3), 최종 verify + review note, PR 생성.
+
 ## 2026-04-24 — feature/scoping-assistant-v2 Phase 5 완료 (FULL-AUTO)
 - **완료**: Phase 5 UI T14-T20 — `/projects/[id]/scoping` SSR (AppLayout + 탭 + 법적 한계 고지 aside), ScopingForm + AreaInput + ScopingResults(발동은 노출, 스킵은 `<details>` 아코디언) + RunHistoryList (CustomEvent `scoping:run` / `scoping:load-run` 기반 cross-island 상태), prompt-generator.ts (Claude 수동 분석 M-B 템플릿 + CLAUDE.md §2 단정 금지 문구) + prompts/scoping-manual.md, csv-export.ts (RFC 4180 + CRLF + pipe 다값) + markdown-export.ts (법적 한계 고지 + 발동/스킵 섹션), DESIGN.md §2.1 5종 배지 토큰 (WCAG AA ≥ 4.5:1). 188/188 test (12 신규), typecheck 0, lint clean. commit 2: `94a6b0a` (배지 토큰) + `0b555dc` (UI/export/prompt).
 - **다음**: Phase 6 (Cron + lint + build verify T21-T23) — workers/cron-cleanup.ts 에 scoping_runs 30일 하드삭제 확장 + CEILING 1000 guard, lint-copy.ts 로 YAML 단정 표현 grep, scripts/verify-rule-pack-audit.ts + CI step.
