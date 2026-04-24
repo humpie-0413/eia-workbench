@@ -67,3 +67,25 @@ test('project detail page passes axe smoke', async ({ page }) => {
   await injectAxe(page);
   await checkA11y(page, AXE_CONTEXT, AXE_OPTIONS);
 });
+
+test('scoping page passes axe smoke', async ({ page }) => {
+  await loginViaUi(page);
+  await waitSettled(page);
+
+  const openButton = page.getByRole('button', { name: '새 프로젝트' });
+  const nameInput = page.locator('dialog[open] input[name="name"]');
+  await expect(async () => {
+    await openButton.click();
+    await expect(nameInput).toBeVisible({ timeout: 1000 });
+  }).toPass({ timeout: 15_000 });
+  await nameInput.fill('axe scoping');
+  await page.getByRole('button', { name: '만들기' }).click();
+  await page.waitForURL(/\/projects\/[A-Za-z0-9_-]{12}/);
+
+  await page.getByRole('tab', { name: '스코핑' }).click();
+  await page.waitForURL(/\/projects\/[A-Za-z0-9_-]{12}\/scoping/);
+  await waitSettled(page);
+
+  await injectAxe(page);
+  await checkA11y(page, AXE_CONTEXT, AXE_OPTIONS);
+});
