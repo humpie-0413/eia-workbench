@@ -10,6 +10,11 @@
 
 ---
 
+## 2026-04-24 — feature/scoping-assistant-v2 Phase 8 완료 (FULL-AUTO 마감)
+- **완료**: Phase 8 T30-T32 — `docs/reviews/feature-scoping-assistant-v2.md` 작성 (CEO/Design/Eng 3리뷰 + §9.3 6-item 도메인 리뷰 6/6 PASS + 알려진 한계 + 후속 이슈 + 머지 체크리스트). 최종 verify chain: typecheck 0, lint 0, test 193/193, verify:rule-pack-audit PASS, build 495ms, E2E 12/12 (2연속 안정). progress.md + session_log 갱신. 최종 리포트 2건 (`docs/reports/2026-04-23-scoping-assistant-mvp-completion.md`, `docs/reports/2026-04-23-user-actions-required.md`) 작성.
+- **USER 액션 남음**: (a) `/design-review` 대화형 실행 (FULL-AUTO 에서 skip), (b) PR 생성 — CLAUDE.md §9.5 PR-only, (c) 머지 후 프로덕션 D1 `0002_scoping.sql` 적용, (d) 프로덕션 스모크.
+- **다음**: USER 머지 후 housekeeping (#40 kostat / #41 route hardening) 또는 `feature/draft-checker` (v0.5) office hours.
+
 ## 2026-04-24 — feature/scoping-assistant-v2 Phase 7 완료 (FULL-AUTO)
 - **완료**: Phase 7 E2E T24-T28 — scoping-happy-v2 (2 triggered + 3 skipped + rule pack version DOM 검증, skip_reason 문구는 엔진 실제 동작인 `condition_not_met` 로 수정), scoping-unit-toggle-v2 (ha 입력 POST body `site_area_m2=8000` + `site_area_input_unit='ha'` 정규화 `page.waitForRequest` 로 검증), scoping-accordion-v2 (`<details>` `open` 속성 토글 + 문구 가시성), scoping-copy-prompt (clipboard API `grantPermissions` + 7개 섹션 문자열 검증), scoping-history (실행 기록 등록 + 재로드 후 rule-pack-version 유지), axe-smoke 에 `/projects/[id]/scoping` 4번째 경로 추가. 기존 crud-happy / hwp-reject 에 axe-smoke 패턴의 hydration 재시도 (`expect(async () => { openButton.click(); await expect(nameInput).toBeVisible(...) }).toPass(...)`) 적용. crud-happy 업로드 assertion 을 `page.waitForRequest` 기반 hydration-safe 패턴으로 재작성 (UploadDropzone client:load 가 setInputFiles 보다 먼저 hydration 완료되지 않으면 onChange 가 attach 되지 않아 POST 자체가 안 나가는 근인 수정 — 이중 업로드 위험 없음, React 는 hydration 직전 이벤트를 replay 하지 않음). ephemeral toast assertion 은 영구 DB state 인 `cell` assertion 으로 대체. 로컬 12/12 E2E 녹색 2연속 (23s). commit 1: Phase 7 (pending).
 - **다음**: Phase 8 (T29-T33) — `/design-review` 실행, `/autoplan` 3중 리뷰 + §9.3 도메인 리뷰 표, 최종 verify chain, review note + progress.md + session_log, 4-option 마감 프롬프트. 최종 리포트 2건 (`docs/reports/2026-04-23-scoping-assistant-mvp-completion.md`, `docs/reports/2026-04-23-user-actions-required.md`) 작성.
