@@ -10,6 +10,10 @@
 
 ---
 
+## 2026-04-24 — feature/scoping-assistant-v2 Phase 1~4 완료 (FULL-AUTO)
+- **완료**: plan v2 기반 자율 실행 Phase 1 (DSL decision doc + js-yaml T2), Phase 2 (units/zone/analysis-result/scoping schema + migration 0002 T3-T7), Phase 3 (rule-pack-loader + engine 6 operators + onshore_wind.v2.yaml 5 rules T8-T10), Phase 4 (POST/GET /api/projects/[id]/scoping + runs list + [runId] detail/soft-delete T11-T13). 테스트 그린: engine 케이스 + api-scoping 8 케이스 (memDb mock). commit 4 (`bc90c3c`): Phase 4 API 엔드포인트.
+- **다음**: Phase 5 (UI T14-T20: Astro SSR + ScopingForm + AreaInput + ScopingResults + RunHistoryList + CSV/Markdown export + Claude prompt generator + DESIGN.md badge tokens) 착수.
+
 ## 2026-04-22/23 — feature/scoping-assistant T1 법령 감사 FAIL → A안 채택 (세션 정리)
 - **완료**: 이전 세션에서 Office Hours + brainstorming + writing-plans 로 `docs/superpowers/specs/2026-04-22-scoping-assistant-design.md` + `docs/plans/feature-scoping-assistant.md` (v1, 26 task) 작성. 본 세션에서 FULL-AUTO DELEGATION 실행 중 Phase 2 T1 (법령 원문 대조) 에서 STOP GATE 발동 — spec §7 rule pack 의 4개 규칙 **모두** 법령 원문과 불일치. CRITICAL 2 (`capacity_mw>=10` 실제 100 MW, citation `별표2` 실제 `별표3`) + HIGH 2 (소규모 EIA 축이 면적·용도지역인데 발전용량으로 작성, `forest_conversion_ha>1` 실제 `>0.066 ha=660㎡`). 사용자가 A안(입력 스키마·rule pack 재설계) 채택. 산출물 5건 준비: `docs/findings/2026-04-22-scoping-rule-pack-legal-audit.md` (감사 리포트), `docs/office-hours/2026-04-23-scoping-assistant-v2-redesign.md` (Q1~Q10 설계 질문), `data/rules/scoping/reference/{README,MANIFEST}.md` (PDF 로컬 배치 정책, 재호스팅 금지), `.gitignore` 에 `data/rules/scoping/reference/*.pdf` 추가, `docs/issues/13-spec-law-audit-mandatory.md` (CLAUDE.md §9.3 ⑥ 항목 추가 제안). v1 산출물 (spec + plan) 은 본 WIP commit 에 그대로 포함, v2 작성 시 `-superseded-by-v2` suffix 로 rename 예정. push 금지 (CLAUDE.md §9.5 + 사용자 정책, 사용자가 `git show --stat` 확인 후 판단).
 - **배운 것**:
