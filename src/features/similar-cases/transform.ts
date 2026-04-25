@@ -60,7 +60,7 @@ function parseCapacity(bizSize: string | null, bizSizeDan: string | null, bizNm:
   if (m) {
     const n = Number(m[1]);
     if (!Number.isFinite(n)) return null;
-    return /kW|㎾/i.test(m[2]) ? n / 1000 : n;
+    return /kW|㎾/i.test(m[2] ?? '') ? n / 1000 : n;
   }
   return null;
 }

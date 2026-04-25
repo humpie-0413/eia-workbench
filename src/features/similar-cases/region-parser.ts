@@ -21,6 +21,6 @@ export function parseRegion(addr: string): RegionParts {
     sido: short,
     sidoLabel: sidoLabel(short),
     sidoCode: sidoCode(short),
-    sigungu: sm ? sm[1] : null
+    sigungu: sm ? (sm[1] ?? null) : null
   };
 }
