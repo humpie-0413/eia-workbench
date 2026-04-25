@@ -16,6 +16,12 @@
   --c-error: #B91C1C;
   --c-error-bg: #FEE2E2;
   --c-focus-ring: #1F6FEB;
+  --c-critical-bg: #FEE2E2;
+  --c-critical-text: #991B1B;
+  --c-attention-bg: #FFEDD5;
+  --c-attention-text: #9A3412;
+  --c-positive-bg: #DCFCE7;
+  --c-positive-text: #166534;
 }
 
 html, body { background: var(--c-bg); color: var(--c-text-primary); }

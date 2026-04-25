@@ -23,10 +23,13 @@ const SKIP_LABEL: Record<ScopingSkipReason, string> = {
   condition_not_met: '해당 임계값에 도달하지 않았습니다.'
 };
 
-const CATEGORY_BADGE: Record<ScopingRuleCategory, { label: string; text: string; bg: string }> = {
-  eia_target: { label: '본 평가 대상 가능성', text: '#991B1B', bg: '#FEE2E2' },
-  small_eia: { label: '소규모 평가 대상 가능성', text: '#9A3412', bg: '#FFEDD5' },
-  forest_conversion: { label: '산지전용 협의 필요 가능성', text: '#166534', bg: '#DCFCE7' }
+const CATEGORY_BADGE: Record<ScopingRuleCategory, { label: string; className: string }> = {
+  eia_target: { label: '본 평가 대상 가능성', className: 'bg-critical-bg text-critical' },
+  small_eia: { label: '소규모 평가 대상 가능성', className: 'bg-attention-bg text-attention' },
+  forest_conversion: {
+    label: '산지전용 협의 필요 가능성',
+    className: 'bg-positive-bg text-positive'
+  }
 };
 
 export interface ScopingResultsProps {
@@ -188,10 +191,7 @@ function ResultCard({ result, triggered }: { result: ScopingResult; triggered: b
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <h3 className="text-h2">{result.title}</h3>
         {triggered ? (
-          <span
-            className="rounded px-2 py-0.5 text-small font-semibold"
-            style={{ color: badge.text, backgroundColor: badge.bg }}
-          >
+          <span className={`rounded px-2 py-0.5 text-small font-semibold ${badge.className}`}>
             {badge.label}
           </span>
         ) : (
