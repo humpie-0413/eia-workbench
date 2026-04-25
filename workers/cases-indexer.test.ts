@@ -77,12 +77,79 @@ describe('cases-indexer', () => {
       maxApiCalls: 8000
     });
     expect(summary.records_added).toBeGreaterThanOrEqual(1);
+    expect(summary.skip_reasons).toBeDefined();
+    expect(summary.skip_reasons.list_schema_invalid).toBeGreaterThanOrEqual(0);
+    expect(summary.skip_reasons.detail_schema_invalid).toBeGreaterThanOrEqual(0);
+    expect(summary.skip_reasons.wind_gubn_invalid).toBeGreaterThanOrEqual(0);
+    expect(summary.skip_reasons.wind_offshore).toBeGreaterThanOrEqual(0);
+    expect(summary.skip_reasons.wind_not_keyword).toBeGreaterThanOrEqual(0);
+    expect(summary.skip_reasons.transform_null).toBeGreaterThanOrEqual(0);
     expect(
       db._exec.some((s) => /CREATE TABLE.*staging|INSERT OR REPLACE INTO eia_cases_staging/i.test(s))
     ).toBe(true);
     expect(
       db._exec.some((s) => /ALTER TABLE.*RENAME|DROP TABLE eia_cases|RENAME TO eia_cases/i.test(s))
     ).toBe(true);
+  });
+
+  it('classifies non-wind list items into wind_not_keyword (no detail call)', async () => {
+    const nonWindList = {
+      response: {
+        header: { resultCode: '00', resultMsg: 'OK' },
+        body: {
+          totalCount: 1,
+          pageNo: 1,
+          numOfRows: 100,
+          items: {
+            item: [{ eiaCd: 'S-1', bizGubunCd: 'C', bizGubunNm: '에너지개발', bizNm: '태양광발전 50MW' }]
+          }
+        }
+      }
+    };
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
+      if (url.includes('Detail')) {
+        return Promise.resolve(new Response(JSON.stringify(detailResp), { status: 200 }));
+      }
+      return Promise.resolve(new Response(JSON.stringify(nonWindList), { status: 200 }));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const db = makeD1();
+    const summary = await runIndexer({
+      env: { SERVICE_KEY: 'k', DB: db as never },
+      maxApiCalls: 8000
+    });
+    expect(summary.skip_reasons.wind_not_keyword).toBeGreaterThanOrEqual(1);
+    expect(summary.records_added).toBe(0);
+  });
+
+  it('classifies 해상풍력 list items into wind_offshore', async () => {
+    const offshoreList = {
+      response: {
+        header: { resultCode: '00', resultMsg: 'OK' },
+        body: {
+          totalCount: 1,
+          pageNo: 1,
+          numOfRows: 100,
+          items: {
+            item: [{ eiaCd: 'O-1', bizGubunCd: 'C', bizGubunNm: '에너지개발', bizNm: '서남해 해상풍력' }]
+          }
+        }
+      }
+    };
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
+      if (url.includes('Detail')) {
+        return Promise.resolve(new Response(JSON.stringify(detailResp), { status: 200 }));
+      }
+      return Promise.resolve(new Response(JSON.stringify(offshoreList), { status: 200 }));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const db = makeD1();
+    const summary = await runIndexer({
+      env: { SERVICE_KEY: 'k', DB: db as never },
+      maxApiCalls: 8000
+    });
+    expect(summary.skip_reasons.wind_offshore).toBeGreaterThanOrEqual(1);
+    expect(summary.records_added).toBe(0);
   });
 
   it('aborts on api_calls > maxApiCalls', async () => {

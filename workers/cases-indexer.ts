@@ -12,6 +12,7 @@ import {
   WIND_SEARCH_TEXTS
 } from '../packages/eia-data/src/endpoints/draft-display';
 import { transformItem, type TransformedRow } from '../src/features/similar-cases/transform';
+import { classifyOnshoreWind } from '../src/features/similar-cases/wind-filter';
 
 export interface IndexerEnv {
   SERVICE_KEY: string;
@@ -25,12 +26,22 @@ export interface IndexerOpts {
   maxPagesPerQuery?: number;
 }
 
+export interface SkipReasons {
+  list_schema_invalid: number;
+  detail_schema_invalid: number;
+  wind_gubn_invalid: number;
+  wind_offshore: number;
+  wind_not_keyword: number;
+  transform_null: number;
+}
+
 export interface IndexerSummary {
   records_total: number;
   records_added: number;
   records_skipped: number;
   api_calls: number;
   error: string | null;
+  skip_reasons: SkipReasons;
 }
 
 const DEFAULT_MAX_API_CALLS = 8000;
@@ -48,6 +59,14 @@ export async function runIndexer(opts: IndexerOpts): Promise<IndexerSummary> {
   let records_skipped = 0;
   let error: string | null = null;
   const rows: TransformedRow[] = [];
+  const skip_reasons: SkipReasons = {
+    list_schema_invalid: 0,
+    detail_schema_invalid: 0,
+    wind_gubn_invalid: 0,
+    wind_offshore: 0,
+    wind_not_keyword: 0,
+    transform_null: 0
+  };
 
   try {
     for (const stage of ['draft', 'strategy'] as const) {
@@ -76,9 +95,21 @@ export async function runIndexer(opts: IndexerOpts): Promise<IndexerSummary> {
               const listParsed = listSchema.safeParse(raw);
               if (!listParsed.success) {
                 records_skipped++;
+                skip_reasons.list_schema_invalid++;
                 continue;
               }
               const listItem = listParsed.data;
+              const cls = classifyOnshoreWind({
+                bizGubunCd: listItem.bizGubunCd,
+                bizNm: listItem.bizNm
+              });
+              if (cls !== 'ok') {
+                records_skipped++;
+                if (cls === 'gubn_invalid') skip_reasons.wind_gubn_invalid++;
+                else if (cls === 'offshore') skip_reasons.wind_offshore++;
+                else skip_reasons.wind_not_keyword++;
+                continue;
+              }
               if (api_calls >= max) {
                 error = `api_calls limit reached (${api_calls})`;
                 break stageLoop;
@@ -92,6 +123,7 @@ export async function runIndexer(opts: IndexerOpts): Promise<IndexerSummary> {
               const detailParsed = detailSchema.safeParse({ ...listItem, ...(detailRaw ?? {}) });
               if (!detailParsed.success) {
                 records_skipped++;
+                skip_reasons.detail_schema_invalid++;
                 continue;
               }
               const row = transformItem({
@@ -101,6 +133,7 @@ export async function runIndexer(opts: IndexerOpts): Promise<IndexerSummary> {
               });
               if (!row) {
                 records_skipped++;
+                skip_reasons.transform_null++;
                 continue;
               }
               rows.push(row);
@@ -117,7 +150,7 @@ export async function runIndexer(opts: IndexerOpts): Promise<IndexerSummary> {
 
   await applyStageAndSwap(opts.env.DB, rows);
 
-  return { records_total, records_added, records_skipped, api_calls, error };
+  return { records_total, records_added, records_skipped, api_calls, error, skip_reasons };
 }
 
 function getItem(res: unknown): unknown {
