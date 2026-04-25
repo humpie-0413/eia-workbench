@@ -1,7 +1,17 @@
 # progress.md
 
 ## 현재 목표
-`feature/similar-cases` v0 — 공공데이터포털 (data.go.kr) 카테고리 B 데이터셋 기반 유사사례 검색. Office Hours 답변 수집 단계 (Q1~Q8 8개).
+`feature/similar-cases` v0 — Phase 0–7 완료 · 로컬 검증 green · PR 생성 대기 (`finishing-a-development-branch` Option 2). 다음: USER push + PR open + 운영 부트스트랩 1회 실측.
+
+## 2026-04-25 feature/similar-cases v0 구현 완료 (Subagent-Driven Development)
+- **스코프**: `docs/plans/feature-similar-cases.md` (36 task / Phase 0–7) Auto Mode 자율 실행.
+- **커밋 체인 (29 task + 1 prettier)**: T0-1/T0-4 → T1-1..T1-7 → T2-1..T2-2 → T3-1..T3-4 → T4-1..T4-6 → T5-1..T5-2 → T6-1..T6-4 → T7-1.
+- **검증**: typecheck 0/0/0 (137 files), lint clean, unit 258/258 (48 files), build success (CaseSearchPage 62.97 kB / gzip 15.76 kB), assertion-grep 2단 clean, dist 에 SERVICE_KEY 노출 없음.
+- **§9.3 도메인 리뷰**: 6/6 PASS (`docs/reports/2026-04-25-similar-cases-domain-review.md`). 단정어 grep 가드 2단(전역 + similar-cases 전용) CI 차단.
+- **데이터셋 결정**: 15000800 (GIS) 부적합 확인 → 15142998 (draft-display) 로 spec §2 교체.
+- **검색 인프라**: D1 + FTS5 unicode61 + LIKE fallback (q≤3) + searchText 보조. stage-and-swap 트랜잭션. source_payload 화이트리스트로 본문 재호스팅 차단.
+- **운영 보류**: 부트스트랩 1회 실측은 SERVICE_KEY 운영 환경에서 USER 직접 실행. T0-2/T0-3/T0-5 (실 페이로드 분포 검증) 후속 plan.
+- **다음 단계**: PR open (Option 2) → review → squash merge → wrangler trigger cases-indexer (운영) → ADR 0001 보강 commit.
 
 ## 2026-04-25 feature/scoping-assistant v2 운영 배포 + /design-review + 후속 7 이슈
 - **PR #7 머지** (squash `47c960b` on main). 운영 D1 `migrations/0002_scoping.sql` 원격 적용. `SERVICE_KEY` (data.go.kr 일반 인증키) `wrangler pages secret put` 주입.
