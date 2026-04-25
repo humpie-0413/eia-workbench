@@ -18,6 +18,8 @@ jobs:
       - run: npm ci
       - name: assertion-grep
         run: bash scripts/assertion-grep.sh
+      - name: verify rule pack audit (issue #13)
+        run: npm run verify:rule-pack-audit
       - run: npm run typecheck
       - run: npm run lint
       - run: npm test

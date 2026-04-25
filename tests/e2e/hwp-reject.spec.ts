@@ -23,8 +23,15 @@ test.beforeEach(async ({ page }) => {
 //   so the assertion `toBeVisible()` on the p-tag text naturally holds.
 //   The spec's additional intent (toast appears) is tested via the role="alert" check below.
 test('drop zone rejects HWP with Hancom guidance', async ({ page }) => {
-  await page.getByRole('button', { name: '새 프로젝트' }).click();
-  await page.fill('input[name="name"]', 'HWP 거부 테스트');
+  // NewProjectModal is client:load; retry open click until dialog is mounted
+  // (matches axe-smoke.spec.ts hydration-safe pattern).
+  const openButton = page.getByRole('button', { name: '새 프로젝트' });
+  const nameInput = page.locator('dialog[open] input[name="name"]');
+  await expect(async () => {
+    await openButton.click();
+    await expect(nameInput).toBeVisible({ timeout: 1000 });
+  }).toPass({ timeout: 15_000 });
+  await nameInput.fill('HWP 거부 테스트');
   await page.getByRole('button', { name: '만들기' }).click();
   await page.waitForURL(/\/projects\/[A-Za-z0-9_-]{12}/);
 
