@@ -4,6 +4,8 @@ import { pickPayload } from './payload-whitelist';
 
 const SOURCE_DATASET = '15142998';
 
+export type QueriedBizGubunCd = 'C' | 'L';
+
 const MW_RE = /(\d+(?:\.\d+)?)\s*(MW|㎿|메가와트)/i;
 const KW_RE = /(\d+(?:\.\d+)?)\s*(kW|㎾|킬로와트)/i;
 const HA_RE = /(\d+(?:\.\d+)?)\s*ha/i;
@@ -15,7 +17,12 @@ export type Stage = 'draft' | 'strategy';
 
 export interface TransformInput {
   stage: Stage;
-  list: Record<string, unknown> & { eiaCd: string; bizGubunCd: string; bizNm: string };
+  /**
+   * 인덱서가 list API 호출 시 사용한 bizGubn 값. 실 응답에 bizGubunCd 가
+   * 누락되므로 신뢰 소스를 호출 파라미터로 변경한다.
+   */
+  queriedBizGubunCd: QueriedBizGubunCd;
+  list: Record<string, unknown> & { eiaCd: string; bizNm: string };
   detail: Record<string, unknown> & { eiaCd: string };
 }
 
@@ -104,8 +111,8 @@ function parseYear(drfopStartDt: string | null, drfopTmdt: string | null): numbe
 }
 
 export function transformItem(input: TransformInput): TransformedRow | null {
-  const { stage, list, detail } = input;
-  if (!isOnshoreWindCandidate({ bizGubunCd: list.bizGubunCd, bizNm: list.bizNm })) return null;
+  const { stage, queriedBizGubunCd, list, detail } = input;
+  if (!isOnshoreWindCandidate({ bizGubunCd: queriedBizGubunCd, bizNm: list.bizNm })) return null;
 
   const merged: Record<string, unknown> = { ...list, ...detail };
   const region = parseRegion(String(merged.eiaAddrTxt ?? ''));
@@ -117,7 +124,7 @@ export function transformItem(input: TransformInput): TransformedRow | null {
   return {
     eia_cd: String(merged.eiaCd),
     eia_seq: merged.eiaSeq ? String(merged.eiaSeq) : null,
-    biz_gubun_cd: String(merged.bizGubunCd),
+    biz_gubun_cd: queriedBizGubunCd,
     biz_gubun_nm: String(merged.bizGubunNm ?? ''),
     biz_nm: bizNm,
     biz_main_nm: (merged.bizmainNm as string | undefined) ?? null,

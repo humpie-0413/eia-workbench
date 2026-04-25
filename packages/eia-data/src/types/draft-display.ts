@@ -5,7 +5,7 @@ const stringy = z.union([z.string(), z.number()]).transform((v) => String(v));
 export const draftListItemSchema = z.object({
   eiaCd: z.string().min(1),
   eiaSeq: stringy.optional(),
-  bizGubunCd: z.string().regex(/^[A-Z]$/),
+  bizGubunCd: z.string().optional(),
   bizGubunNm: z.string(),
   bizNm: z.string(),
   drfopTmdt: z.string().optional()

@@ -19,14 +19,28 @@ describe('draft-display zod schemas', () => {
     expect(ok.success).toBe(true);
   });
 
-  it('rejects bizGubunCd outside 1자리 영문', () => {
-    const bad = draftListItemSchema.safeParse({
-      eiaCd: 'A-2024-001',
-      bizGubunCd: 'CC',
+  it('parses item without bizGubunCd (실 응답에 필드 부재)', () => {
+    const ok = draftListItemSchema.safeParse({
+      eiaCd: 'YS2025C001',
+      eiaSeq: 45329,
+      bizGubunNm: '에너지개발',
+      bizNm: '강원풍력',
+      drfopTmdt: '2025.06.18 ~ 2025.07.15'
+    });
+    expect(ok.success).toBe(true);
+  });
+
+  it('coerces eiaSeq number → string', () => {
+    const ok = draftListItemSchema.safeParse({
+      eiaCd: 'YS2025C001',
+      eiaSeq: 45329,
       bizGubunNm: '에너지개발',
       bizNm: '강원풍력'
     });
-    expect(bad.success).toBe(false);
+    expect(ok.success).toBe(true);
+    if (ok.success) {
+      expect(ok.data.eiaSeq).toBe('45329');
+    }
   });
 
   it('strategy detail allows bizMoney/bizSize/bizSizeDan', () => {

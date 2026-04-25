@@ -56,8 +56,8 @@
 CREATE TABLE eia_cases (
   -- raw API fields (15142998 응답 그대로 보존)
   eia_cd                TEXT PRIMARY KEY,            -- API: eiaCd
-  eia_seq               TEXT,                        -- API: eiaSeq (회차/시퀀스)
-  biz_gubun_cd          TEXT NOT NULL,               -- API: bizGubunCd ('C'|'L'|...)
+  eia_seq               TEXT,                        -- API: eiaSeq (회차/시퀀스). 응답은 number, 인덱서가 string 으로 coerce
+  biz_gubun_cd          TEXT NOT NULL,               -- 인덱서가 list 호출 시 사용한 bizGubn 파라미터('C'|'L'). 응답 자체에는 누락
   biz_gubun_nm          TEXT NOT NULL,               -- API: bizGubunNm (라벨)
   biz_nm                TEXT NOT NULL,               -- API: bizNm (사업명)
   biz_main_nm           TEXT,                        -- detail API: bizmainNm (사업주관기관)
@@ -65,7 +65,7 @@ CREATE TABLE eia_cases (
   biz_money             INTEGER,                     -- strategy detail: bizMoney (사업비, 원)
   biz_size              TEXT,                        -- strategy detail: bizSize (사업규모 raw)
   biz_size_dan          TEXT,                        -- strategy detail: bizSizeDan (단위 raw)
-  drfop_tmdt            TEXT,                        -- list/detail: drfopTmdt (공람기간 raw, "YYYY-MM-DD ~ YYYY-MM-DD")
+  drfop_tmdt            TEXT,                        -- list/detail: drfopTmdt (공람기간 raw, "YYYY.MM.DD ~ YYYY.MM.DD" 점 구분자)
   drfop_start_dt        TEXT,                        -- detail: drfopStartDt
   drfop_end_dt          TEXT,                        -- detail: drfopEndDt
   eia_addr_txt          TEXT,                        -- detail: eiaAddrTxt (사업지 주소 raw)
@@ -169,13 +169,13 @@ searchText ∈ ['풍력', '해상풍력', '육상풍력']
 
 | derived 컬럼 | 출처 | 변환 규칙 | 실패 시 |
 |---|---|---|---|
-| `industry` | `bizGubunCd` + `bizNm` | `bizGubunCd ∈ {'C','L'}` AND `/풍력|풍력발전/.test(bizNm)` AND NOT `/해상풍력|해상\s*풍력/.test(bizNm)` → `'onshore_wind'` | **skip** (행 미적재) |
+| `industry` | (queried `bizGubn`) + `bizNm` | (queried `bizGubn`) `∈ {'C','L'}` AND `/풍력|풍력발전/.test(bizNm)` AND NOT `/해상풍력|해상\s*풍력/.test(bizNm)` → `'onshore_wind'`. 실 응답에 `bizGubunCd` 가 누락되므로 인덱서 호출 파라미터를 신뢰 소스로 사용. | **skip** (행 미적재) |
 | `region_sido` | `eiaAddrTxt` | 정규식 `^(서울|부산|대구|인천|광주|대전|울산|세종|경기|강원|충북|충남|전북|전남|경북|경남|제주)(특별시\|광역시\|특별자치시\|도\|특별자치도)?` 첫 매칭. 17개 시·도 LUT (`src/lib/region/sido.ts`) 재사용. | NULL |
 | `region_sido_code` | `region_sido` | 17개 시·도 → KOSTAT 2자리 코드 매핑 LUT (project-shell 의 `kostat-code.ts` 패턴). | NULL |
 | `region_sigungu` | `eiaAddrTxt` | `region_sido` 이후 토큰에서 `/(\S+?(?:시|군|구))/` 첫 매칭. 시·군·구 LUT 검증은 v1 (오탐 허용). | NULL |
 | `capacity_mw` | (전략) `bizSize`·`bizSizeDan` / (일반) `bizNm` | 우선순위 ① `bizSizeDan='MW' or 'kW' or '㎾'`이면 `bizSize` 숫자 추출 후 단위 변환 (kW→MW: ÷1000) ② `bizNm` 정규식 `/(\d+(?:\.\d+)?)\s*(MW|㎿)/i` 첫 매칭 ③ 둘 다 실패 → NULL | NULL (검색 결과에는 노출, 규모 facet 에서는 제외) |
 | `area_ha` | (전략) `bizSize`·`bizSizeDan` | `bizSizeDan` 분기: `'ha'` 그대로 / `'㎡'` ÷ 10000 / `'㎢'` × 100 / 그 외(`MW`, `kW` 등) → NULL. 일반 operation 응답에는 `bizSize` 가 없으므로 NULL. | NULL |
-| `evaluation_year` | `drfopTmdt` 또는 `drfopStartDt` | `drfopStartDt` 우선 (YYYY-MM-DD), 없으면 `drfopTmdt` 첫 4자리 정수. `< 2000` 또는 `> 현재연도+1` 이면 NULL. | NULL |
+| `evaluation_year` | `drfopTmdt` 또는 `drfopStartDt` | `drfopStartDt` 우선 (YYYY-MM-DD), 없으면 `drfopTmdt` 첫 4자리 정수 (점·대시 구분자 양쪽 허용). `< 2000` 또는 `> 현재연도+1` 이면 NULL. | NULL |
 | `evaluation_stage` | origin operation | `getDraftPblancDsplay*` 계열 → `'본안'`, `getStrategyDraftPblancDsplay*` 계열 → `'전략'`. | (origin operation 외 사용 안 함, CHECK 위반 시 적재 거부) |
 | `source_payload` | list+detail merge | list 응답 item + detail 응답 item 의 화이트리스트 필드 (§4.1 컬럼 + 협의 메타) JSON.stringify. **본문 텍스트 필드는 화이트리스트 미포함** (§2-4, §10.4 재호스팅 가드). | (불가, 적재 거부) |
 | `eia_cd` | `eiaCd` | 그대로 (`PRIMARY KEY`). list 응답에서 누락된 행은 적재 거부. | (skip) |

@@ -73,7 +73,8 @@ export async function runIndexer(opts: IndexerOpts): Promise<IndexerSummary> {
       const listPath = buildDraftListPath(stage);
       const detailPath = buildDetailPath(stage);
       const listSchema = stage === 'draft' ? draftListItemSchema : strategyDraftListItemSchema;
-      const detailSchema = stage === 'draft' ? draftDetailItemSchema : strategyDraftDetailItemSchema;
+      const detailSchema =
+        stage === 'draft' ? draftDetailItemSchema : strategyDraftDetailItemSchema;
 
       stageLoop: for (const searchText of WIND_SEARCH_TEXTS) {
         for (const bizGubn of WIND_BIZ_GUBN_CODES) {
@@ -99,8 +100,9 @@ export async function runIndexer(opts: IndexerOpts): Promise<IndexerSummary> {
                 continue;
               }
               const listItem = listParsed.data;
+              // 응답에 bizGubunCd 가 누락되므로 호출 파라미터 bizGubn 을 신뢰 소스로 사용
               const cls = classifyOnshoreWind({
-                bizGubunCd: listItem.bizGubunCd,
+                bizGubunCd: bizGubn,
                 bizNm: listItem.bizNm
               });
               if (cls !== 'ok') {
@@ -128,6 +130,7 @@ export async function runIndexer(opts: IndexerOpts): Promise<IndexerSummary> {
               }
               const row = transformItem({
                 stage,
+                queriedBizGubunCd: bizGubn,
                 list: listItem as never,
                 detail: detailParsed.data as never
               });
@@ -184,11 +187,30 @@ async function applyStageAndSwap(db: D1Database, rows: TransformedRow[]): Promis
          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`
       )
       .bind(
-        r.eia_cd, r.eia_seq, r.biz_gubun_cd, r.biz_gubun_nm, r.biz_nm,
-        r.biz_main_nm, r.approv_organ_nm, r.biz_money, r.biz_size, r.biz_size_dan,
-        r.drfop_tmdt, r.drfop_start_dt, r.drfop_end_dt, r.eia_addr_txt, r.industry,
-        r.region_sido, r.region_sido_code, r.region_sigungu, r.capacity_mw, r.area_ha,
-        r.evaluation_year, r.evaluation_stage, r.source_dataset, r.source_payload
+        r.eia_cd,
+        r.eia_seq,
+        r.biz_gubun_cd,
+        r.biz_gubun_nm,
+        r.biz_nm,
+        r.biz_main_nm,
+        r.approv_organ_nm,
+        r.biz_money,
+        r.biz_size,
+        r.biz_size_dan,
+        r.drfop_tmdt,
+        r.drfop_start_dt,
+        r.drfop_end_dt,
+        r.eia_addr_txt,
+        r.industry,
+        r.region_sido,
+        r.region_sido_code,
+        r.region_sigungu,
+        r.capacity_mw,
+        r.area_ha,
+        r.evaluation_year,
+        r.evaluation_stage,
+        r.source_dataset,
+        r.source_payload
       )
       .run();
   }

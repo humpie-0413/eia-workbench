@@ -85,7 +85,9 @@ describe('cases-indexer', () => {
     expect(summary.skip_reasons.wind_not_keyword).toBeGreaterThanOrEqual(0);
     expect(summary.skip_reasons.transform_null).toBeGreaterThanOrEqual(0);
     expect(
-      db._exec.some((s) => /CREATE TABLE.*staging|INSERT OR REPLACE INTO eia_cases_staging/i.test(s))
+      db._exec.some((s) =>
+        /CREATE TABLE.*staging|INSERT OR REPLACE INTO eia_cases_staging/i.test(s)
+      )
     ).toBe(true);
     expect(
       db._exec.some((s) => /ALTER TABLE.*RENAME|DROP TABLE eia_cases|RENAME TO eia_cases/i.test(s))
@@ -101,7 +103,9 @@ describe('cases-indexer', () => {
           pageNo: 1,
           numOfRows: 100,
           items: {
-            item: [{ eiaCd: 'S-1', bizGubunCd: 'C', bizGubunNm: '에너지개발', bizNm: '태양광발전 50MW' }]
+            item: [
+              { eiaCd: 'S-1', bizGubunCd: 'C', bizGubunNm: '에너지개발', bizNm: '태양광발전 50MW' }
+            ]
           }
         }
       }
@@ -131,7 +135,9 @@ describe('cases-indexer', () => {
           pageNo: 1,
           numOfRows: 100,
           items: {
-            item: [{ eiaCd: 'O-1', bizGubunCd: 'C', bizGubunNm: '에너지개발', bizNm: '서남해 해상풍력' }]
+            item: [
+              { eiaCd: 'O-1', bizGubunCd: 'C', bizGubunNm: '에너지개발', bizNm: '서남해 해상풍력' }
+            ]
           }
         }
       }
