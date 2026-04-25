@@ -4,6 +4,7 @@ import CaseResultCard from './CaseResultCard';
 import CasePreviewPane from './CasePreviewPane';
 import CaseSearchGuide from './CaseSearchGuide';
 import type { CaseSearchResult, EiaCase } from '@/lib/types/case-search';
+import { exportCasesToMarkdown } from '@/features/similar-cases/markdown-export';
 
 function readQ(): string {
   if (typeof window === 'undefined') return '';
@@ -16,6 +17,27 @@ export default function CaseSearchPage() {
   const [selected, setSelected] = useState<EiaCase | null>(null);
   const [loading, setLoading] = useState(false);
   const [tick, setTick] = useState(0);
+
+  function downloadMarkdown() {
+    if (!data) return;
+    const url = new URL(window.location.href);
+    const qParam = url.searchParams.get('q');
+    const ctx: Parameters<typeof exportCasesToMarkdown>[1] = {
+      sido: url.searchParams.getAll('sido'),
+      capacity_band: url.searchParams.getAll('capacity_band'),
+      year: url.searchParams.getAll('year').map(Number).filter(Number.isFinite)
+    };
+    if (qParam) ctx.q = qParam;
+    const md = exportCasesToMarkdown(data.items, ctx);
+    const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `cases-${new Date().toISOString().slice(0, 10)}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -57,10 +79,9 @@ export default function CaseSearchPage() {
         />
         <button
           type="button"
-          className="inline-flex h-10 items-center rounded-md border border-border px-3 text-small hover:bg-bg"
-          onClick={() => {
-            /* T5-1: Markdown 내보내기 */
-          }}
+          className="inline-flex h-10 items-center rounded-md border border-border px-3 text-small hover:bg-bg disabled:cursor-not-allowed disabled:opacity-50"
+          onClick={downloadMarkdown}
+          disabled={!data || data.items.length === 0}
         >
           Markdown 내보내기
         </button>
