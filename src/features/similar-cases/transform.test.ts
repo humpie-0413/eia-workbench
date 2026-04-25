@@ -2,18 +2,36 @@ import { describe, it, expect } from 'vitest';
 import { transformItem, type TransformedRow } from './transform';
 
 const baseList = {
-  eiaCd: 'X-1', bizGubunCd: 'C', bizGubunNm: '에너지개발',
-  bizNm: '강원평창풍력발전사업 30MW', drfopTmdt: '2024-01-15 ~ 2024-02-14'
+  eiaCd: 'X-1',
+  bizGubunCd: 'C',
+  bizGubunNm: '에너지개발',
+  bizNm: '강원평창풍력발전사업 30MW',
+  drfopTmdt: '2024-01-15 ~ 2024-02-14'
 };
-const baseDetail = { ...baseList, eiaAddrTxt: '강원특별자치도 평창군 봉평면', drfopStartDt: '2024-01-15', drfopEndDt: '2024-02-14' };
+const baseDetail = {
+  ...baseList,
+  eiaAddrTxt: '강원특별자치도 평창군 봉평면',
+  drfopStartDt: '2024-01-15',
+  drfopEndDt: '2024-02-14'
+};
 
 describe('transformItem', () => {
   it('returns null when not onshore wind', () => {
-    expect(transformItem({ stage: 'draft', list: { ...baseList, bizNm: '태양광발전' }, detail: { ...baseDetail, bizNm: '태양광발전' } })).toBeNull();
+    expect(
+      transformItem({
+        stage: 'draft',
+        list: { ...baseList, bizNm: '태양광발전' },
+        detail: { ...baseDetail, bizNm: '태양광발전' }
+      })
+    ).toBeNull();
   });
 
   it('extracts capacity from bizNm regex when bizSize 없음', () => {
-    const r = transformItem({ stage: 'draft', list: baseList, detail: baseDetail }) as TransformedRow;
+    const r = transformItem({
+      stage: 'draft',
+      list: baseList,
+      detail: baseDetail
+    }) as TransformedRow;
     expect(r.industry).toBe('onshore_wind');
     expect(r.capacity_mw).toBe(30);
     expect(r.area_ha).toBeNull();
@@ -55,7 +73,8 @@ describe('transformItem', () => {
 
   it('evaluation_year 미래연도+2 → null', () => {
     const r = transformItem({
-      stage: 'draft', list: baseList,
+      stage: 'draft',
+      list: baseList,
       detail: { ...baseDetail, drfopStartDt: '2099-01-15' }
     }) as TransformedRow;
     expect(r.evaluation_year).toBeNull();

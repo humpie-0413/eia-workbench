@@ -46,7 +46,11 @@ export interface TransformedRow {
   source_payload: string;
 }
 
-function parseCapacity(bizSize: string | null, bizSizeDan: string | null, bizNm: string): number | null {
+function parseCapacity(
+  bizSize: string | null,
+  bizSizeDan: string | null,
+  bizNm: string
+): number | null {
   if (bizSize && bizSizeDan) {
     const num = Number(String(bizSize).replace(/,/g, ''));
     if (Number.isFinite(num)) {
@@ -65,7 +69,11 @@ function parseCapacity(bizSize: string | null, bizSizeDan: string | null, bizNm:
   return null;
 }
 
-function parseArea(bizSize: string | null, bizSizeDan: string | null, bizNm: string): number | null {
+function parseArea(
+  bizSize: string | null,
+  bizSizeDan: string | null,
+  bizNm: string
+): number | null {
   if (bizSize && bizSizeDan) {
     const num = Number(String(bizSize).replace(/,/g, ''));
     if (Number.isFinite(num)) {

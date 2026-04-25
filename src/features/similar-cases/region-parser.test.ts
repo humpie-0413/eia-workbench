@@ -21,7 +21,10 @@ describe('parseRegion', () => {
   });
   it('returns nulls when not parsable', () => {
     expect(parseRegion('알 수 없는 지역')).toEqual({
-      sido: null, sidoLabel: null, sidoCode: null, sigungu: null
+      sido: null,
+      sidoLabel: null,
+      sidoCode: null,
+      sigungu: null
     });
   });
 });

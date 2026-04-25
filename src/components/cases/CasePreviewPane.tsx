@@ -4,9 +4,7 @@ import { eiassProjectUrl } from '../../../packages/eia-data/src/deep-link';
 export default function CasePreviewPane({ eiaCase }: { eiaCase: EiaCase | null }) {
   if (!eiaCase) {
     return (
-      <p className="text-small text-text-tertiary">
-        카드를 선택하면 메타데이터가 표시됩니다.
-      </p>
+      <p className="text-small text-text-tertiary">카드를 선택하면 메타데이터가 표시됩니다.</p>
     );
   }
   return (

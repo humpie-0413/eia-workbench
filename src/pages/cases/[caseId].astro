@@ -12,40 +12,38 @@ const row = (await env.DB.prepare(
      FROM eia_cases WHERE eia_cd = ?`
 )
   .bind(caseId)
-  .first()) as
-  | {
-      eia_cd: string;
-      biz_nm: string;
-      region_sido: string | null;
-      region_sigungu: string | null;
-      capacity_mw: number | null;
-      evaluation_year: number | null;
-      evaluation_stage: string;
-      approv_organ_nm: string | null;
-      eia_addr_txt: string | null;
-    }
-  | null;
+  .first()) as {
+  eia_cd: string;
+  biz_nm: string;
+  region_sido: string | null;
+  region_sigungu: string | null;
+  capacity_mw: number | null;
+  evaluation_year: number | null;
+  evaluation_stage: string;
+  approv_organ_nm: string | null;
+  eia_addr_txt: string | null;
+} | null;
 if (!row) return new Response('not found', { status: 404 });
 ---
 
 <AppLayout title={`${row.biz_nm} — 유사사례`} navActive="cases">
   <a href="/cases" class="text-small text-primary">← 검색 결과로</a>
-  <h1 class="text-h1 mt-2">{row.biz_nm}</h1>
+  <h1 class="mt-2 text-h1">{row.biz_nm}</h1>
   <p class="text-small text-text-secondary">
     {row.region_sido}
     {row.region_sigungu} · {row.capacity_mw ?? '미상'} MW · {row.evaluation_year ?? '미상'}
   </p>
   <dl class="mt-4 grid gap-1 text-small">
     <div>
-      <dt class="inline text-text-secondary">위치: </dt>
+      <dt class="inline text-text-secondary">위치:</dt>
       <dd class="inline">{row.eia_addr_txt ?? '미상'}</dd>
     </div>
     <div>
-      <dt class="inline text-text-secondary">평가단계: </dt>
+      <dt class="inline text-text-secondary">평가단계:</dt>
       <dd class="inline">{row.evaluation_stage}</dd>
     </div>
     <div>
-      <dt class="inline text-text-secondary">승인기관: </dt>
+      <dt class="inline text-text-secondary">승인기관:</dt>
       <dd class="inline">{row.approv_organ_nm ?? '미상'}</dd>
     </div>
   </dl>

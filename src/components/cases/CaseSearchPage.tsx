@@ -53,11 +53,11 @@ export default function CaseSearchPage() {
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="사업명·지역명 검색 (예: 강원 평창 풍력)"
-          className="h-10 flex-1 min-w-[200px] rounded-md border border-border bg-surface px-3"
+          className="h-10 min-w-[200px] flex-1 rounded-md border border-border bg-surface px-3"
         />
         <button
           type="button"
-          className="h-10 inline-flex items-center rounded-md border border-border px-3 text-small hover:bg-bg"
+          className="inline-flex h-10 items-center rounded-md border border-border px-3 text-small hover:bg-bg"
           onClick={() => {
             /* T5-1: Markdown 내보내기 */
           }}
@@ -70,9 +70,7 @@ export default function CaseSearchPage() {
       <div className="grid gap-4 md:grid-cols-[220px_1fr_320px]">
         <CaseFacetPanel onChange={() => setTick((n) => n + 1)} />
         <section aria-label="결과 리스트">
-          {loading ? (
-            <p className="text-small text-text-tertiary">불러오는 중…</p>
-          ) : null}
+          {loading ? <p className="text-small text-text-tertiary">불러오는 중…</p> : null}
           {data && data.total === 0 ? (
             <p className="rounded-md border border-border bg-surface p-6 text-small text-text-secondary">
               조건에 맞는 사례가 없습니다. facet 을 줄이거나 검색어를 짧게 해보세요.

@@ -1,7 +1,18 @@
 export const PAYLOAD_WHITELIST = [
-  'eiaCd', 'eiaSeq', 'bizGubunCd', 'bizGubunNm', 'bizNm',
-  'bizmainNm', 'approvOrganNm', 'bizMoney', 'bizSize', 'bizSizeDan',
-  'drfopTmdt', 'drfopStartDt', 'drfopEndDt', 'eiaAddrTxt'
+  'eiaCd',
+  'eiaSeq',
+  'bizGubunCd',
+  'bizGubunNm',
+  'bizNm',
+  'bizmainNm',
+  'approvOrganNm',
+  'bizMoney',
+  'bizSize',
+  'bizSizeDan',
+  'drfopTmdt',
+  'drfopStartDt',
+  'drfopEndDt',
+  'eiaAddrTxt'
 ] as const;
 
 export type PayloadKey = (typeof PAYLOAD_WHITELIST)[number];
