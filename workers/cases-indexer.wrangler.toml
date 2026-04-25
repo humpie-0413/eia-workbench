@@ -1,0 +1,13 @@
+name = "eia-workbench-cases-indexer"
+main = "cases-indexer.ts"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "eia-workbench-v0"
+database_id = "afca9a24-7725-4530-8c49-e3d001bd24d8"
+migrations_dir = "migrations"
+
+[triggers]
+crons = ["0 18 * * 0"]  # Sun 18:00 UTC = Mon 03:00 KST

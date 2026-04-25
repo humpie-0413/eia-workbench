@@ -16,7 +16,8 @@ export default defineConfig({
       'tests/**/*.test.ts',
       'src/**/*.test.ts',
       'src/**/*.test.tsx',
-      'packages/**/src/**/*.test.ts'
+      'packages/**/src/**/*.test.ts',
+      'workers/**/*.test.ts'
     ]
   }
 });
