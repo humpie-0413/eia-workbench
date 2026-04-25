@@ -1,0 +1,63 @@
+---
+import AppLayout from '@/layouts/AppLayout.astro';
+import { eiassProjectUrl } from '../../../packages/eia-data/src/deep-link';
+
+const { caseId } = Astro.params;
+if (!caseId) return new Response('bad request', { status: 400 });
+
+const env = Astro.locals.runtime.env;
+const row = (await env.DB.prepare(
+  `SELECT eia_cd, biz_nm, region_sido, region_sigungu, capacity_mw,
+          evaluation_year, evaluation_stage, approv_organ_nm, eia_addr_txt
+     FROM eia_cases WHERE eia_cd = ?`
+)
+  .bind(caseId)
+  .first()) as
+  | {
+      eia_cd: string;
+      biz_nm: string;
+      region_sido: string | null;
+      region_sigungu: string | null;
+      capacity_mw: number | null;
+      evaluation_year: number | null;
+      evaluation_stage: string;
+      approv_organ_nm: string | null;
+      eia_addr_txt: string | null;
+    }
+  | null;
+if (!row) return new Response('not found', { status: 404 });
+---
+
+<AppLayout title={`${row.biz_nm} — 유사사례`} navActive="cases">
+  <a href="/cases" class="text-small text-primary">← 검색 결과로</a>
+  <h1 class="text-h1 mt-2">{row.biz_nm}</h1>
+  <p class="text-small text-text-secondary">
+    {row.region_sido}
+    {row.region_sigungu} · {row.capacity_mw ?? '미상'} MW · {row.evaluation_year ?? '미상'}
+  </p>
+  <dl class="mt-4 grid gap-1 text-small">
+    <div>
+      <dt class="inline text-text-secondary">위치: </dt>
+      <dd class="inline">{row.eia_addr_txt ?? '미상'}</dd>
+    </div>
+    <div>
+      <dt class="inline text-text-secondary">평가단계: </dt>
+      <dd class="inline">{row.evaluation_stage}</dd>
+    </div>
+    <div>
+      <dt class="inline text-text-secondary">승인기관: </dt>
+      <dd class="inline">{row.approv_organ_nm ?? '미상'}</dd>
+    </div>
+  </dl>
+  <a
+    href={eiassProjectUrl({ projectId: row.eia_cd })}
+    target="_blank"
+    rel="noreferrer"
+    class="mt-4 inline-flex h-10 items-center rounded-md bg-primary px-4 text-small text-white hover:bg-primary-hover"
+  >
+    EIASS 원문 열기 ↗
+  </a>
+  <p class="mt-2 text-small text-text-tertiary">
+    본 도구는 사례 메타데이터만 표시합니다. 본문은 EIASS 원문에서 확인하세요.
+  </p>
+</AppLayout>
