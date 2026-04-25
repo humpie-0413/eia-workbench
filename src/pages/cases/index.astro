@@ -1,0 +1,13 @@
+---
+import AppLayout from '@/layouts/AppLayout.astro';
+import CaseSearchPage from '@/components/cases/CaseSearchPage';
+---
+
+<AppLayout title="유사사례 검색 — eia-workbench" navActive="cases">
+  <h1 class="text-h1 mb-2">유사사례 검색</h1>
+  <p class="text-small text-text-secondary mb-4">
+    국내 풍력 사업의 환경영향평가 초안 공람 사례를 검색합니다. 본 도구는 검토 보조이며 현지조사·전문가
+    검토를 대체하지 않습니다.
+  </p>
+  <CaseSearchPage client:load />
+</AppLayout>
