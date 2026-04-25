@@ -1,7 +1,21 @@
 # progress.md
 
 ## 현재 목표
-`feature/scoping-assistant` v2 구현 완료 (Phase 1–8 FULL-AUTO). 브랜치: `feature/scoping-assistant`. USER 액션 대기: (a) PR 생성 + `/design-review` 수동 실행, (b) 머지 후 프로덕션 D1 `migrations/0002_scoping.sql` 적용 + 스모크.
+`feature/similar-cases` v0 — 공공데이터포털 (data.go.kr) 카테고리 B 데이터셋 기반 유사사례 검색. Office Hours 답변 수집 단계 (Q1~Q8 8개).
+
+## 2026-04-25 feature/scoping-assistant v2 운영 배포 + /design-review + 후속 7 이슈
+- **PR #7 머지** (squash `47c960b` on main). 운영 D1 `migrations/0002_scoping.sql` 원격 적용. `SERVICE_KEY` (data.go.kr 일반 인증키) `wrangler pages secret put` 주입.
+- **운영 배포**: `e951ed3b.eia-workbench-v0.pages.dev` 활성.
+- **운영 스모크 PASS**: 농림 8000㎡ + 산지 800㎡ → 발동 2건 (소규모 EIA + 산지전용) + 스킵 3건 (입력 미정의 / zone 불일치) 정확.
+- **`/design-review`** (정적 분석 — Chrome 미설치로 Playwright 불가):
+  - 종합 PASS (minor improvements). A/B/D 카테고리 모두 PASS.
+  - 자동 수정 1건: CATEGORY_BADGE 하드코딩 hex → critical/attention/positive 토큰화 (commit `8817265` on `feature/scoping-assistant`).
+  - **주의: `8817265` 는 PR #7 squash 전 main 에 반영되지 않음** — 후속 cherry-pick 또는 별도 PR 필요.
+  - 수동 검토 보류 2건 → Issue #5, #6 으로 등록 대기.
+- **후속 이슈 7건 본문 준비**:
+  - **P1**: B-1 Markdown export `## 입력` 빈 `{}`, B-2 Claude 프롬프트 `## 사용자 입력` 빈 `{}` (한 PR 권장)
+  - **P2**: B-3 스킵 규칙 카드 "근거 참조 없음"
+  - **P3**: B-4 timestamp KST/UTC 혼재, C 사람 검토 필요 배지 대비, D `role="tab"` 제거, E 탭 가시성 일관성
 
 ## 2026-04-24 feature/scoping-assistant v2 구현 완료 (FULL-AUTO Phase 1–8)
 - **스코프**: spec v2 (`docs/superpowers/specs/2026-04-23-scoping-assistant-design-v2.md`) + plan v2 (`docs/plans/feature-scoping-assistant-v2.md`) 기반 T2–T33 자율 실행.
@@ -80,13 +94,9 @@
 - Claude Code CLI + gstack + Superpowers 설치·확인.
 
 ## 진행 중
-- **`feature/scoping-assistant` v2 USER 액션 대기**:
-  1. PR 생성 (`gh pr create`) — CLAUDE.md §9.5 PR-only, 자동 배포 금지
-  2. `/design-review http://localhost:3000/projects/<id>/scoping` 수동 실행 — 자동 수정 10건 한도
-  3. 수동 머지 후 프로덕션 D1 `0002_scoping.sql` 적용 (`wrangler d1 migrations apply DB --remote`)
-  4. 프로덕션 스모크 (프로젝트 생성 → `/scoping` → 5 rules 1 run → history 1건)
-- 상세: `docs/reports/2026-04-23-scoping-assistant-mvp-completion.md` + `docs/reports/2026-04-23-user-actions-required.md`
-- 리뷰 노트: `docs/reviews/feature-scoping-assistant-v2.md`
+- **`feature/similar-cases` v0 Office Hours**: 공공데이터포털 카테고리 B 기반 유사사례 검색. Q1~Q8 답변 대기 (1차 데이터셋, 필터 차원, UI, 원문 정책, 일 1k 한도, 로컬 우선, MVP 범위, 검색 UX).
+- **scoping-assistant 후속**: Issue #1~#7 GitHub 등록 (USER), `8817265` token-fix commit cherry-pick 또는 폐기 결정.
+- 참고 문서: `docs/reports/2026-04-23-scoping-assistant-mvp-completion.md`, `docs/reviews/feature-scoping-assistant-v2.md`
 
 ## 최근 완료 (2026-04-20)
 - `feature/project-shell` Office Hours Q&A 6세트 + 보안 리뷰 12건 완료.
@@ -105,13 +115,13 @@
 ## 다음 작업
 
 ### 다음 세션 시작 시 (최우선)
-1. **사용자**: 법제처 별표 PDF 3개 수령 (MANIFEST 참조) → `data/rules/scoping/reference/` 배치
-2. **사용자**: OH v2 Q1~Q10 답변 (`docs/office-hours/2026-04-23-scoping-assistant-v2-redesign.md`)
-3. **Claude**: PDF 기반 T1 재감사 → spec v2 + plan v2 작성
+1. **사용자**: feature/similar-cases OH Q1~Q8 답변 (채팅 출력 — 본 세션 결과 참조)
+2. **사용자**: 본 세션의 7 이슈 (B-1~B-4 + design-review C/D + 탭 가시성) 를 GitHub Issues 로 등록 (P1 B-1+B-2 먼저)
+3. **사용자 결정**: `8817265` (token-fix on `feature/scoping-assistant`) cherry-pick to main 또는 폐기
 
 ### 백로그
 4. `docs/issues/13` (spec 법령 감사 의무화) 를 CLAUDE.md §9.3 에 ⑥ 항목으로 반영
-5. `docs/issues/01-07` 7건을 GitHub Issues 로 올리기 (P1 #02, #03 먼저)
+5. `docs/issues/01-07` 7건을 GitHub Issues 로 올리기 (P1 #02, #03 먼저) — v0 배포 후속
 6. `DESIGN.md` 기본 섹션 확장 또는 `/design-consultation` 1회
 7. 이슈 #2 + #3 해결 (`fix/project-shell-hardening` 단일 브랜치 권장)
 8. (이슈 #4, #5, #6 은 v0.5/v1 트리거 대기)

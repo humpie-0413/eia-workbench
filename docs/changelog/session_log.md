@@ -10,6 +10,10 @@
 
 ---
 
+## 2026-04-25 — feature/scoping-assistant v2 운영 배포 완료 + /design-review + 후속 7 이슈
+- **완료**: PR #7 머지 (squash `47c960b`) → 운영 D1 `migrations/0002_scoping.sql` remote 적용 → `SERVICE_KEY` (data.go.kr 인증키) secret 주입 → 운영 배포 `e951ed3b.eia-workbench-v0.pages.dev` → 운영 스모크 PASS (농림 8000㎡ + 산지 800㎡ → 발동 2 + 스킵 3 정확). `/design-review` 정적 분석 (Chrome 미설치) — 종합 PASS, 자동 수정 1건 (CATEGORY_BADGE 하드코딩 hex → critical/attention/positive 토큰화, commit `8817265` on `feature/scoping-assistant`). **주의: `8817265` 는 PR #7 squash 후 main 에 미반영 — cherry-pick 또는 폐기 결정 필요.** 후속 7 이슈 본문 준비 완료 (P1 B-1 markdown export `{}`, P1 B-2 prompt export `{}` — 한 PR 권장 / P2 B-3 skip 카드 근거 누락 / P3 B-4 timestamp 혼재 / P3 C "사람 검토 필요" 배지 대비 / P3 D role="tab" 제거 / P3 E 탭 가시성 일관성). progress.md / session_log.md 갱신.
+- **다음**: (a) USER 가 7 이슈 GitHub 등록, (b) `feature/similar-cases` Office Hours Q1~Q8 답변, (c) `8817265` cherry-pick or drop 결정.
+
 ## 2026-04-24 — feature/scoping-assistant-v2 Phase 8 완료 (FULL-AUTO 마감)
 - **완료**: Phase 8 T30-T32 — `docs/reviews/feature-scoping-assistant-v2.md` 작성 (CEO/Design/Eng 3리뷰 + §9.3 6-item 도메인 리뷰 6/6 PASS + 알려진 한계 + 후속 이슈 + 머지 체크리스트). 최종 verify chain: typecheck 0, lint 0, test 193/193, verify:rule-pack-audit PASS, build 495ms, E2E 12/12 (2연속 안정). progress.md + session_log 갱신. 최종 리포트 2건 (`docs/reports/2026-04-23-scoping-assistant-mvp-completion.md`, `docs/reports/2026-04-23-user-actions-required.md`) 작성.
 - **USER 액션 남음**: (a) `/design-review` 대화형 실행 (FULL-AUTO 에서 skip), (b) PR 생성 — CLAUDE.md §9.5 PR-only, (c) 머지 후 프로덕션 D1 `0002_scoping.sql` 적용, (d) 프로덕션 스모크.
