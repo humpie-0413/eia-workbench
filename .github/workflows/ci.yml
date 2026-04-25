@@ -18,6 +18,8 @@ jobs:
       - run: npm ci
       - name: assertion-grep
         run: bash scripts/assertion-grep.sh
+      - name: assertion-grep (similar-cases)
+        run: bash scripts/check-similar-cases-assertions.sh
       - name: verify rule pack audit (issue #13)
         run: npm run verify:rule-pack-audit
       - run: npm run typecheck
@@ -25,6 +27,12 @@ jobs:
       - run: npm test
       - name: apply D1 migrations (local)
         run: npx wrangler d1 migrations apply DB --local
+      - name: seed similar-cases fixture (E2E only)
+        # SERVICE_KEY is not available in CI, so the cases-indexer worker
+        # cannot populate eia_cases. Seed 4 synthetic 육상풍력 cases
+        # (TESTSEED-* prefix; not EIASS-derived) so cases-search-happy /
+        # facet-combo / cases-axe specs have data.
+        run: npx wrangler d1 execute DB --local --file=tests/e2e/fixtures/cases-seed.sql
       - run: npx playwright install --with-deps chromium
       - name: seed .dev.vars for E2E (Turnstile always-pass keys)
         # @astrojs/cloudflare platformProxy auto-loads .dev.vars so runtime.env
