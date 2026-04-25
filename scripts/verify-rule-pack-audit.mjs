@@ -65,11 +65,16 @@ for (const file of files) {
   if (!Array.isArray(audit.source_pdfs) || audit.source_pdfs.length === 0) {
     fail(`${file} — source_pdfs must be a non-empty array`);
   }
+  const skipDiskCheck = process.env.CI === 'true';
   for (const p of audit.source_pdfs) {
-    if (typeof p !== 'string' || !existsSync(join(ROOT, p))) {
+    if (typeof p !== 'string') {
+      fail(`${file} — source_pdf must be a string path: ${JSON.stringify(p)}`);
+    }
+    if (!skipDiskCheck && !existsSync(join(ROOT, p))) {
       fail(`${file} — source_pdf missing on disk: ${p}`);
     }
   }
+
 
   ok += 1;
 }

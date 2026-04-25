@@ -8,9 +8,9 @@ rule_pack_audit:
   audit_verdict: PASS
   audit_date: '2026-04-23'
   source_pdfs:
-    - data/rules/scoping/reference/enforcement-decree-eia-2025-02-18-annex-03.pdf.pdf
-    - data/rules/scoping/reference/enforcement-decree-eia-2025-10-01-annex-04.pdf.pdf
-    - data/rules/scoping/reference/enforcement-decree-forest-management-act-2023-06-07-annex-04.pdf.pdf
+    - data/rules/scoping/reference/enforcement-decree-eia-2025-02-18-annex-03.pdf
+    - data/rules/scoping/reference/enforcement-decree-eia-2025-10-01-annex-04.pdf
+    - data/rules/scoping/reference/enforcement-decree-forest-management-act-2023-06-07-annex-04.pdf
 
 source_note: |
   이 rule pack 의 모든 숫자는 법제처 국가법령정보센터에서 수령한
