@@ -63,11 +63,43 @@ export class PortalClient {
   }
 
   /**
-   * 엔드포인트 호출. **현재는 미구현 스텁** — 다음 feature 에서 구현.
+   * data.go.kr 엔드포인트 호출.
+   * - AbortController 로 timeoutMs 적용
+   * - 5xx / 429 응답은 retries 회 재시도
+   * - resultCode !== '00' 이면 즉시 throw
+   * - 에러 메시지에서 serviceKey 를 redact 한다
    */
-  async call<T>(_req: PortalRequest): Promise<PortalResponse<T>> {
-    throw new Error(
-      'PortalClient.call: not implemented — 다음 feature (유사사례 검색) 에서 구현 예정'
-    );
+  async call<T>(req: PortalRequest): Promise<PortalResponse<T>> {
+    const url = this.buildUrl(req);
+    let lastErr: unknown;
+    for (let attempt = 0; attempt <= this.retries; attempt++) {
+      try {
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), this.timeoutMs);
+        const res = await fetch(url, { signal: ctrl.signal });
+        clearTimeout(timer);
+        if (res.status >= 500 || res.status === 429) {
+          lastErr = new Error(`portal http ${res.status}`);
+          continue;
+        }
+        const json = (await res.json()) as PortalResponse<T>;
+        const code = json.response?.header?.resultCode;
+        if (code !== '00') {
+          throw new Error(`portal resultCode=${code} msg=${json.response?.header?.resultMsg}`);
+        }
+        return json;
+      } catch (e) {
+        lastErr = e;
+        // retry on transient errors only
+        const m = e instanceof Error ? e.message : String(e);
+        if (!/portal http (5\d\d|429)|aborted/i.test(m)) throw redact(e, this.serviceKey);
+      }
+    }
+    throw redact(lastErr, this.serviceKey);
   }
+}
+
+function redact(err: unknown, key: string): Error {
+  const m = err instanceof Error ? err.message : String(err);
+  return new Error(m.split(key).join('***'));
 }
