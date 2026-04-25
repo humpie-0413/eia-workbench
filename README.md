@@ -32,3 +32,26 @@ npm run test:e2e                                   # 전체 6 스펙
 ```
 
 `npm run test:e2e`는 `playwright.config.ts`의 webServer 설정으로 `npm run dev`를 자동 기동합니다. 머지 직전에는 반드시 CI 로그가 아니라 로컬에서 한 번 더 돌려 axe 위반을 직접 눈으로 확인하세요.
+
+## similar-cases 부트스트랩 (수동 1회)
+
+`/cases` 검색 인덱스(`eia_cases`)는 cron 워커 `workers/cases-indexer.ts` 가
+data.go.kr 데이터셋 `15142998` 을 스테이지·스왑 방식으로 갱신한다.
+운영 D1 에 `migrations/0003` 을 적용한 후, 첫 인덱싱은 1회만 수동으로 트리거한다.
+
+```bash
+tsx scripts/cases-bootstrap.ts --env=local        # 로컬 가이드
+tsx scripts/cases-bootstrap.ts --env=production   # 운영 가이드
+```
+
+`scripts/cases-bootstrap.ts` 는 직접 외부 API 를 호출하지 않고, 사용자가 셸에서
+`wrangler` 로 실행해야 할 명령만 출력한다 (SERVICE_KEY 누설 차단).
+이후 cron(`0 18 * * 0` UTC) 트리거가 주 1회 자동 갱신한다.
+
+검증:
+
+```bash
+wrangler d1 execute DB --remote --command "SELECT * FROM eia_cases_sync ORDER BY id DESC LIMIT 1;"
+```
+
+`records_added` 와 `api_calls` 가 함께 보이면 정상.

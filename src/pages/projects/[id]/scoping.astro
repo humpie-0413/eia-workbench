@@ -27,7 +27,7 @@ const region =
   [project.site_region, project.site_sub_region].filter(Boolean).join(' · ') || '지역 미지정';
 ---
 
-<AppLayout title={`${project.name} · 스코핑 · eia-workbench`}>
+<AppLayout title={`${project.name} · 스코핑 · eia-workbench`} navActive="projects">
   <nav class="mb-3 text-small text-text-tertiary">
     <a href={`/projects/${project.id}`} class="hover:text-text-primary">← {project.name}</a>
   </nav>

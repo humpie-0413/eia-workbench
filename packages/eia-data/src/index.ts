@@ -1,3 +1,5 @@
+export * from './types/draft-display';
+export * from './endpoints/draft-display';
 export { PortalClient } from './client';
 export { loadServiceKey, MissingServiceKeyError } from './auth';
 export { eiassProjectUrl } from './deep-link';
