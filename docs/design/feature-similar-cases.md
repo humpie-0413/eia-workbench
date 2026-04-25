@@ -181,7 +181,7 @@ searchText ∈ ['풍력', '해상풍력', '육상풍력']
 | `eia_cd` | `eiaCd` | 그대로 (`PRIMARY KEY`). list 응답에서 누락된 행은 적재 거부. | (skip) |
 
 특이 케이스:
-- 같은 `eia_cd` 가 일반 + 전략 양쪽 list 에 등장 → `evaluation_stage` 우선순위 = **전략** (사업비/규모 정보가 더 풍부). 인덱서는 stage 별 sync 후 동일 `eia_cd` 충돌 시 전략 행으로 덮어쓴다.
+- 같은 `eia_cd` 가 일반 + 전략 양쪽 list 에 등장 → `evaluation_stage` 우선순위 = **전략**. 인덱서 실행 순서는 **(1) 일반 stage list → (2) 일반 detail → (3) 전략 stage list → (4) 전략 detail → (5) merge (전략 우선 덮어쓰기) → (6) 단일 트랜잭션 swap**. (5) 단계에서 `eia_cd` 충돌은 전략 행이 일반 행을 덮어쓴다 (`INSERT OR REPLACE`).
 - `bizSize` 가 `'30MW, 부지 50ha'` 처럼 복합 표기인 경우 → `capacity_mw` 정규식 + `area_ha` 정규식 각각 적용 (둘 다 채움).
 - `eiaAddrTxt` 가 다중 시·도 (`'강원 평창군 외 1'`) → `region_sido='강원'` 만 적재. v1 에서 다중 지역 컬럼 검토.
 
