@@ -1,7 +1,22 @@
 # progress.md
 
 ## 현재 목표
-`feature/scoping-assistant` **A안 (spec v2 재설계)** 진행. T1 법령 감사 FAIL → 사용자 PDF 수령 + OH v2 답변 대기.
+`feature/scoping-assistant` v2 구현 완료 (Phase 1–8 FULL-AUTO). 브랜치: `feature/scoping-assistant`. USER 액션 대기: (a) PR 생성 + `/design-review` 수동 실행, (b) 머지 후 프로덕션 D1 `migrations/0002_scoping.sql` 적용 + 스모크.
+
+## 2026-04-24 feature/scoping-assistant v2 구현 완료 (FULL-AUTO Phase 1–8)
+- **스코프**: spec v2 (`docs/superpowers/specs/2026-04-23-scoping-assistant-design-v2.md`) + plan v2 (`docs/plans/feature-scoping-assistant-v2.md`) 기반 T2–T33 자율 실행.
+- **커밋 체인 (10)**: `7a68395 Phase 1 DSL 결정` → `14f9cfe Phase 2 schema/migration` → `b7923e2 Phase 3 rule pack + engine` → `bc90c3c Phase 4 API` → `94a6b0a+0b555dc Phase 5 UI/export/prompt` → `2777232 Phase 5 log` → `f4b19cb Phase 6 cron/YAML grep/audit trip-wire` → `e48433f Phase 6 log` → `f4f3db5 Phase 7 E2E + hydration fixes`.
+- **테스트 (로컬)**: unit 193/193, E2E 12/12 (2연속 안정, 23s), typecheck 0, lint 0, verify:rule-pack-audit PASS, build 495ms.
+- **법령 대조**: T1 BLOCKING 감사 (2026-04-23) PDF 3개 기반 PASS. rule pack v2 `rule_pack_audit` 메타 + `scripts/verify-rule-pack-audit.mjs` CI step 이 회귀 trip-wire.
+- **§9.3 도메인 리뷰**: 6/6 PASS (`docs/reviews/feature-scoping-assistant-v2.md`). ⑥ 법령 숫자 원문 대조 (issue #13) 포함.
+- **알려진 한계**:
+  - 엔진 `equals` 연산자 false → `condition_not_met` (사용자 직관은 `zone_mismatch` 예상 가능 — 파일럿 후 UX 재검토).
+  - v2 는 육상풍력 단독 (태양광·해상풍력 요청 시 v3).
+  - `/design-review` 는 대화형 세션 필요 — USER 수동 실행.
+  - PDF export, run history 필터·검색, UI "규칙 부정확" 신고 버튼 v3 로 연기.
+- **후속 이슈 후보**: 09 법령 refLink 체커 (P2), 10 도시지역 rule (P2), 11 산지관리법 시행규칙 별표4 (P3), 12 보호구역 GIS 연동 (P3), 13 client:load hydration signal 표준화 (Phase 7 경험 반영).
+
+## 2026-04-22/23 feature/scoping-assistant v1 T1 법령 감사 FAIL → A안 채택 → 세션 정리
 
 ## 2026-04-22/23 feature/scoping-assistant v1 T1 법령 감사 FAIL → A안 채택 → 세션 정리
 - **T1 법령 감사 결과 FAIL (CRITICAL 2 + HIGH 2)**:
@@ -65,10 +80,13 @@
 - Claude Code CLI + gstack + Superpowers 설치·확인.
 
 ## 진행 중
-- **`feature/scoping-assistant` A안 Step 1-2 (USER) 대기**:
-  1. 법제처 별표3 / 별표4 (환경영향평가법 시행령) + 산지관리법 시행규칙 별표4 PDF 수동 다운로드 → `data/rules/scoping/reference/` 배치 (MANIFEST 명명규칙)
-  2. `docs/office-hours/2026-04-23-scoping-assistant-v2-redesign.md` Q1~Q10 답변 (기본값 수락 가능)
-- 완료 시 Claude 자동 작업: T1 재감사 (PDF 기반) → spec v2 + plan v2 작성 → FULL-AUTO DELEGATION 재개
+- **`feature/scoping-assistant` v2 USER 액션 대기**:
+  1. PR 생성 (`gh pr create`) — CLAUDE.md §9.5 PR-only, 자동 배포 금지
+  2. `/design-review http://localhost:3000/projects/<id>/scoping` 수동 실행 — 자동 수정 10건 한도
+  3. 수동 머지 후 프로덕션 D1 `0002_scoping.sql` 적용 (`wrangler d1 migrations apply DB --remote`)
+  4. 프로덕션 스모크 (프로젝트 생성 → `/scoping` → 5 rules 1 run → history 1건)
+- 상세: `docs/reports/2026-04-23-scoping-assistant-mvp-completion.md` + `docs/reports/2026-04-23-user-actions-required.md`
+- 리뷰 노트: `docs/reviews/feature-scoping-assistant-v2.md`
 
 ## 최근 완료 (2026-04-20)
 - `feature/project-shell` Office Hours Q&A 6세트 + 보안 리뷰 12건 완료.

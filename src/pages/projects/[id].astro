@@ -59,7 +59,12 @@ const region =
       aria-selected="true"
       class="h-9 border-b-2 border-primary px-4 text-primary">자료</button
     >
-    <DisabledTab label="스코핑" tooltip="v0 범위 밖. 로드맵: feature/scoping-assistant" />
+    <a
+      href={`/projects/${project.id}/scoping`}
+      role="tab"
+      aria-selected="false"
+      class="h-9 px-4 text-text-secondary hover:text-text-primary">스코핑</a
+    >
     <DisabledTab label="초안점검" tooltip="v0 범위 밖. 로드맵: feature/draft-checker" />
     <DisabledTab label="의견대응" tooltip="v0 범위 밖. 로드맵: feature/opinion-response" />
   </div>

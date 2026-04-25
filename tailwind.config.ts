@@ -11,6 +11,9 @@ export default {
         primary: { DEFAULT: 'var(--c-primary)', hover: 'var(--c-primary-hover)' },
         warning: { DEFAULT: 'var(--c-warning)', bg: 'var(--c-warning-bg)' },
         danger: { DEFAULT: 'var(--c-error)', bg: 'var(--c-error-bg)' },
+        critical: { DEFAULT: 'var(--c-critical-text)', bg: 'var(--c-critical-bg)' },
+        attention: { DEFAULT: 'var(--c-attention-text)', bg: 'var(--c-attention-bg)' },
+        positive: { DEFAULT: 'var(--c-positive-text)', bg: 'var(--c-positive-bg)' },
         text: {
           primary: 'var(--c-text-primary)',
           secondary: 'var(--c-text-secondary)',

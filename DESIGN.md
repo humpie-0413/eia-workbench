@@ -44,6 +44,23 @@
 
 **금지:** 그라데이션 배경, 브랜드 외 원색, 파스텔 톤 배경 카드.
 
+### 2.1 스코핑 결과 배지 토큰 (feature/scoping-assistant-v2)
+
+5종 카테고리·상태 배지. 텍스트·배경 조합은 모두 WCAG AA 이상(≥ 4.5:1) 대비 검증.
+
+| 토큰 | 용도 | 텍스트 / 배경 | 대비 |
+|---|---|---|---|
+| badge `eia_target` triggered | "본 평가 대상 가능성" | `#991B1B` / `#FEE2E2` | 6.33:1 |
+| badge `small_eia` triggered | "소규모 평가 대상 가능성" | `#9A3412` / `#FFEDD5` | 6.15:1 |
+| badge `forest_conversion` triggered | "산지전용 협의 필요 가능성" | `#166534` / `#DCFCE7` | 6.87:1 |
+| badge `needs_human_review` | "사람 검토 필요" (항상) | `#1F2937` / `#E5E7EB` | 10.5:1 |
+| badge skip (`input_undefined` / `zone_mismatch` / `condition_not_met`) | 스킵 사유 | `#52525B` / `#F4F4F5` | 7.8:1 |
+
+**사용 규칙:**
+- triggered=true 인 rule 만 원색 배지. skip/false 는 중성 배지(skip 토큰).
+- "사람 검토 필요" 배지는 모든 결과 카드에 동시 노출. 이 배지는 `aria-label="사람 검토 필요 표시"`.
+- 배지 라운드 4px, padding 4px/8px, 텍스트 13px/600.
+
 ## 3. 타이포
 
 | 이름 | 크기/라인 | 용도 |
