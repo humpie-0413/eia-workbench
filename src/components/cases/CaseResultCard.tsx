@@ -10,7 +10,7 @@ export default function CaseResultCard({
   return (
     <article className="mb-3 rounded-md border border-border bg-surface p-4">
       <button type="button" onClick={onSelect} className="block w-full text-left">
-        <h3 className="text-h2">{eiaCase.biz_nm}</h3>
+        <h2 className="text-h2">{eiaCase.biz_nm}</h2>
         <p className="text-small text-text-secondary">
           {eiaCase.region_sido
             ? `${eiaCase.region_sido} ${eiaCase.region_sigungu ?? ''}`
