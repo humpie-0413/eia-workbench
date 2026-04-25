@@ -49,3 +49,30 @@ describe('PortalClient.call', () => {
     expect(String(err)).not.toContain('SUPER_SECRET');
   });
 });
+
+describe('PortalClient.buildUrl — _type=json 강제', () => {
+  it('_type 미지정 시 _type=json 을 자동 추가한다 (15142998 등 XML default 데이터셋 대응)', () => {
+    const client = new PortalClient({ SERVICE_KEY: 'k' });
+    const url = client.buildUrl({
+      path: '/1480523/EnvrnAffcEvlDraftDsplayInfoInqireService/getDraftPblancDsplayListInfoInqire',
+      query: { pageNo: 1, numOfRows: 10 }
+    });
+    expect(url).toContain('_type=json');
+  });
+
+  it('사용자가 query 에 _type 을 명시하면 그 값을 보존한다', () => {
+    const client = new PortalClient({ SERVICE_KEY: 'k' });
+    const url = client.buildUrl({
+      path: '/svc/op',
+      query: { _type: 'xml', pageNo: 1 }
+    });
+    expect(url).toContain('_type=xml');
+    expect(url).not.toContain('_type=json');
+  });
+
+  it('query 자체가 없을 때도 _type=json 을 추가한다', () => {
+    const client = new PortalClient({ SERVICE_KEY: 'k' });
+    const url = client.buildUrl({ path: '/svc/op' });
+    expect(url).toContain('_type=json');
+  });
+});

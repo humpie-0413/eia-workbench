@@ -48,6 +48,10 @@ export class PortalClient {
   /**
    * SERVICE_KEY + 추가 query 를 주입한 최종 URL 을 반환한다.
    * 반환된 URL 에는 인증키가 포함되므로 로그에 그대로 출력하지 말 것.
+   *
+   * `_type` 은 미지정 시 `'json'` 을 강제한다. 일부 데이터셋(예: 15142998
+   * 환경영향평가 초안 공람) 이 기본 XML 응답이라 JSON.parse 가 실패하는
+   * 회귀를 방지한다. 호출자가 `_type` 을 명시한 경우 (예: `'xml'`) 그대로 보존.
    */
   buildUrl(req: PortalRequest): string {
     const url = new URL(req.path, this.baseUrl);
@@ -58,6 +62,9 @@ export class PortalClient {
           url.searchParams.set(k, String(v));
         }
       }
+    }
+    if (!url.searchParams.has('_type')) {
+      url.searchParams.set('_type', 'json');
     }
     return url.toString();
   }
