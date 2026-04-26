@@ -35,24 +35,16 @@ const baseListResp = {
       pageNo: 1,
       numOfRows: 100,
       items: {
-        item: [{ eiaCd: 'A-1', bizGubunCd: 'C', bizGubunNm: '에너지개발', bizNm: '강원풍력 30MW' }]
-      }
-    }
-  }
-};
-
-const detailResp = {
-  response: {
-    header: { resultCode: '00', resultMsg: 'OK' },
-    body: {
-      items: {
-        item: {
-          eiaCd: 'A-1',
-          bizGubunCd: 'C',
-          bizGubunNm: '에너지개발',
-          bizNm: '강원풍력 30MW',
-          eiaAddrTxt: '강원 평창군'
-        }
+        item: [
+          {
+            eiaCd: 'YS2025C001',
+            eiaSeq: 45329,
+            bizNm: '강원풍력 30MW',
+            ccilOrganNm: '환경부 원주지방환경청',
+            rnum: 1,
+            stepChangeDt: '2025.06.18'
+          }
+        ]
       }
     }
   }
@@ -62,25 +54,23 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe('cases-indexer', () => {
+describe('cases-indexer (15142987 discussion list)', () => {
   it('hits API and writes stage rows then swaps', async () => {
-    const fetchMock = vi.fn().mockImplementation((url: string) => {
-      if (url.includes('Detail')) {
-        return Promise.resolve(new Response(JSON.stringify(detailResp), { status: 200 }));
-      }
-      return Promise.resolve(new Response(JSON.stringify(baseListResp), { status: 200 }));
-    });
+    const fetchMock = vi
+      .fn()
+      .mockImplementation(() =>
+        Promise.resolve(new Response(JSON.stringify(baseListResp), { status: 200 }))
+      );
     vi.stubGlobal('fetch', fetchMock);
     const db = makeD1();
     const summary = await runIndexer({
       env: { SERVICE_KEY: 'k', DB: db as never },
-      maxApiCalls: 8000
+      maxApiCalls: 8000,
+      maxPagesPerQuery: 1
     });
     expect(summary.records_added).toBeGreaterThanOrEqual(1);
     expect(summary.skip_reasons).toBeDefined();
     expect(summary.skip_reasons.list_schema_invalid).toBeGreaterThanOrEqual(0);
-    expect(summary.skip_reasons.detail_schema_invalid).toBeGreaterThanOrEqual(0);
-    expect(summary.skip_reasons.wind_gubn_invalid).toBeGreaterThanOrEqual(0);
     expect(summary.skip_reasons.wind_offshore).toBeGreaterThanOrEqual(0);
     expect(summary.skip_reasons.wind_not_keyword).toBeGreaterThanOrEqual(0);
     expect(summary.skip_reasons.transform_null).toBeGreaterThanOrEqual(0);
@@ -94,7 +84,7 @@ describe('cases-indexer', () => {
     ).toBe(true);
   });
 
-  it('classifies non-wind list items into wind_not_keyword (no detail call)', async () => {
+  it('classifies non-wind list items into wind_not_keyword', async () => {
     const nonWindList = {
       response: {
         header: { resultCode: '00', resultMsg: 'OK' },
@@ -103,24 +93,24 @@ describe('cases-indexer', () => {
           pageNo: 1,
           numOfRows: 100,
           items: {
-            item: [
-              { eiaCd: 'S-1', bizGubunCd: 'C', bizGubunNm: '에너지개발', bizNm: '태양광발전 50MW' }
-            ]
+            item: [{ eiaCd: 'S-1', eiaSeq: 1, bizNm: '태양광발전 50MW' }]
           }
         }
       }
     };
-    const fetchMock = vi.fn().mockImplementation((url: string) => {
-      if (url.includes('Detail')) {
-        return Promise.resolve(new Response(JSON.stringify(detailResp), { status: 200 }));
-      }
-      return Promise.resolve(new Response(JSON.stringify(nonWindList), { status: 200 }));
-    });
-    vi.stubGlobal('fetch', fetchMock);
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockImplementation(() =>
+          Promise.resolve(new Response(JSON.stringify(nonWindList), { status: 200 }))
+        )
+    );
     const db = makeD1();
     const summary = await runIndexer({
       env: { SERVICE_KEY: 'k', DB: db as never },
-      maxApiCalls: 8000
+      maxApiCalls: 8000,
+      maxPagesPerQuery: 1
     });
     expect(summary.skip_reasons.wind_not_keyword).toBeGreaterThanOrEqual(1);
     expect(summary.records_added).toBe(0);
@@ -135,24 +125,24 @@ describe('cases-indexer', () => {
           pageNo: 1,
           numOfRows: 100,
           items: {
-            item: [
-              { eiaCd: 'O-1', bizGubunCd: 'C', bizGubunNm: '에너지개발', bizNm: '서남해 해상풍력' }
-            ]
+            item: [{ eiaCd: 'O-1', eiaSeq: 2, bizNm: '서남해 해상풍력' }]
           }
         }
       }
     };
-    const fetchMock = vi.fn().mockImplementation((url: string) => {
-      if (url.includes('Detail')) {
-        return Promise.resolve(new Response(JSON.stringify(detailResp), { status: 200 }));
-      }
-      return Promise.resolve(new Response(JSON.stringify(offshoreList), { status: 200 }));
-    });
-    vi.stubGlobal('fetch', fetchMock);
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockImplementation(() =>
+          Promise.resolve(new Response(JSON.stringify(offshoreList), { status: 200 }))
+        )
+    );
     const db = makeD1();
     const summary = await runIndexer({
       env: { SERVICE_KEY: 'k', DB: db as never },
-      maxApiCalls: 8000
+      maxApiCalls: 8000,
+      maxPagesPerQuery: 1
     });
     expect(summary.skip_reasons.wind_offshore).toBeGreaterThanOrEqual(1);
     expect(summary.records_added).toBe(0);
@@ -176,185 +166,27 @@ describe('cases-indexer', () => {
     expect(count).toBeLessThanOrEqual(3);
   });
 
-  it('strategy stage overrides draft stage on eia_cd conflict (perCd→eia_cd 매핑)', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockImplementation((url: string) => {
-        if (url.includes('Strategy') && url.includes('Detail')) {
-          return Promise.resolve(
-            new Response(
-              JSON.stringify({
-                response: {
-                  header: { resultCode: '00', resultMsg: 'OK' },
-                  body: {
-                    items: {
-                      item: {
-                        perCd: 'X-1',
-                        bizSeq: 1,
-                        ccilOrganCd: 'OR1',
-                        bizGubunNm: '에너지개발',
-                        bizNm: '풍력',
-                        bizSize: '30',
-                        bizSizeDan: 'MW',
-                        eiaAddrTxt: '강원 영월군'
-                      }
-                    }
-                  }
-                }
-              }),
-              { status: 200 }
-            )
-          );
-        }
-        if (url.includes('Detail')) {
-          return Promise.resolve(
-            new Response(
-              JSON.stringify({
-                response: {
-                  header: { resultCode: '00', resultMsg: 'OK' },
-                  body: {
-                    items: {
-                      item: {
-                        eiaCd: 'X-1',
-                        bizGubunCd: 'C',
-                        bizGubunNm: '에너지개발',
-                        bizNm: '풍력',
-                        eiaAddrTxt: '강원 평창군'
-                      }
-                    }
-                  }
-                }
-              }),
-              { status: 200 }
-            )
-          );
-        }
-        if (url.includes('Strategy')) {
-          return Promise.resolve(
-            new Response(
-              JSON.stringify({
-                response: {
-                  header: { resultCode: '00', resultMsg: 'OK' },
-                  body: {
-                    items: {
-                      item: [
-                        {
-                          perCd: 'X-1',
-                          bizSeq: 1,
-                          ccilOrganCd: 'OR1',
-                          bizNm: '풍력',
-                          drfopTmdt: '2025.01.01 ~ 2025.01.30'
-                        }
-                      ]
-                    }
-                  }
-                }
-              }),
-              { status: 200 }
-            )
-          );
-        }
-        return Promise.resolve(
-          new Response(
-            JSON.stringify({
-              response: {
-                header: { resultCode: '00', resultMsg: 'OK' },
-                body: {
-                  items: {
-                    item: [
-                      { eiaCd: 'X-1', bizGubunCd: 'C', bizGubunNm: '에너지개발', bizNm: '풍력' }
-                    ]
-                  }
-                }
-              }
-            }),
-            { status: 200 }
-          )
-        );
-      })
-    );
-    const db = makeD1();
-    await runIndexer({ env: { SERVICE_KEY: 'k', DB: db as never }, maxApiCalls: 8000 });
-    const insert = db._exec.find((s) => /INSERT OR REPLACE INTO eia_cases_staging/i.test(s));
-    expect(insert).toBeDefined();
-  });
-
-  it('strategy detail call uses perCd query param (not eiaCd)', async () => {
+  it('uses 15142987 dscss list endpoint (no draft/strategy paths)', async () => {
     const calls: string[] = [];
     vi.stubGlobal(
       'fetch',
       vi.fn().mockImplementation((url: string) => {
         calls.push(url);
-        if (url.includes('Strategy') && url.includes('Detail')) {
-          return Promise.resolve(
-            new Response(
-              JSON.stringify({
-                response: {
-                  header: { resultCode: '00', resultMsg: 'OK' },
-                  body: {
-                    items: {
-                      item: {
-                        perCd: 'P-7',
-                        bizSeq: 7,
-                        ccilOrganCd: 'OR9',
-                        bizGubunNm: '에너지개발',
-                        bizNm: '풍력',
-                        eiaAddrTxt: '강원 평창군'
-                      }
-                    }
-                  }
-                }
-              }),
-              { status: 200 }
-            )
-          );
-        }
-        if (url.includes('Strategy')) {
-          return Promise.resolve(
-            new Response(
-              JSON.stringify({
-                response: {
-                  header: { resultCode: '00', resultMsg: 'OK' },
-                  body: {
-                    items: {
-                      item: [
-                        {
-                          perCd: 'P-7',
-                          bizSeq: 7,
-                          ccilOrganCd: 'OR9',
-                          bizNm: '풍력',
-                          drfopTmdt: '2025.01.01 ~ 2025.01.30'
-                        }
-                      ]
-                    }
-                  }
-                }
-              }),
-              { status: 200 }
-            )
-          );
-        }
-        // draft list: 빈 응답 (해당 stage 패스)
-        return Promise.resolve(
-          new Response(
-            JSON.stringify({
-              response: {
-                header: { resultCode: '00', resultMsg: 'OK' },
-                body: { items: { item: [] } }
-              }
-            }),
-            { status: 200 }
-          )
-        );
+        return Promise.resolve(new Response(JSON.stringify(baseListResp), { status: 200 }));
       })
     );
     const db = makeD1();
-    await runIndexer({ env: { SERVICE_KEY: 'k', DB: db as never }, maxApiCalls: 8000 });
-    const strategyDetailCalls = calls.filter((u) => u.includes('Strategy') && u.includes('Detail'));
-    expect(strategyDetailCalls.length).toBeGreaterThan(0);
-    for (const u of strategyDetailCalls) {
-      expect(u).toMatch(/[?&]perCd=P-7/);
-      expect(u).not.toMatch(/[?&]eiaCd=/);
+    await runIndexer({
+      env: { SERVICE_KEY: 'k', DB: db as never },
+      maxApiCalls: 4,
+      maxPagesPerQuery: 1
+    });
+    expect(calls.length).toBeGreaterThan(0);
+    for (const u of calls) {
+      expect(u).toMatch(/EnvrnAffcEvlDscssSttusInfoInqireService/);
+      expect(u).toMatch(/getDscssBsnsListInfoInqire/);
+      expect(u).not.toMatch(/Draft/);
+      expect(u).not.toMatch(/Strategy/);
     }
   });
 });

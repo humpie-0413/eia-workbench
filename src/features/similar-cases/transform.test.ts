@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { transformItem, type TransformedRow } from './transform';
+import { transformItem, transformDscssItem, type TransformedRow } from './transform';
 
 const baseList = {
   eiaCd: 'X-1',
@@ -162,5 +162,84 @@ describe('transformItem', () => {
       detail: { ...baseStrategyDetail, bizNm: '풍력', eiaAddrTxt: '강원 영월군' }
     }) as TransformedRow;
     expect(r.eia_addr_txt).toBe('강원 영월군');
+  });
+});
+
+describe('transformDscssItem (15142987 list-only)', () => {
+  it('returns null when bizNm is not onshore wind', () => {
+    expect(
+      transformDscssItem({
+        list: { eiaCd: 'X-1', bizNm: '태양광발전' }
+      })
+    ).toBeNull();
+  });
+
+  it('returns null when bizNm is 해상풍력', () => {
+    expect(
+      transformDscssItem({
+        list: { eiaCd: 'X-1', bizNm: '서남해 해상풍력' }
+      })
+    ).toBeNull();
+  });
+
+  it('extracts capacity from bizNm regex (list-only, no detail)', () => {
+    const r = transformDscssItem({
+      list: {
+        eiaCd: 'YS2025C001',
+        eiaSeq: 45329,
+        bizNm: '강원평창풍력 30MW',
+        ccilOrganNm: '환경부 원주지방환경청',
+        stepChangeDt: '2025.06.18'
+      }
+    }) as TransformedRow;
+    expect(r.industry).toBe('onshore_wind');
+    expect(r.eia_cd).toBe('YS2025C001');
+    expect(r.eia_seq).toBe('45329');
+    expect(r.capacity_mw).toBe(30);
+    expect(r.area_ha).toBeNull();
+    expect(r.evaluation_year).toBe(2025);
+    expect(r.evaluation_stage).toBe('unknown');
+    expect(r.source_dataset).toBe('15142987');
+    expect(r.biz_gubun_cd).toBe('');
+    expect(r.biz_gubun_nm).toBe('');
+    expect(r.approv_organ_nm).toBe('환경부 원주지방환경청');
+    // list-only: detail-derived fields all null
+    expect(r.eia_addr_txt).toBeNull();
+    expect(r.region_sido).toBeNull();
+    expect(r.region_sigungu).toBeNull();
+    expect(r.drfop_tmdt).toBeNull();
+    expect(r.biz_size).toBeNull();
+  });
+
+  it('source_payload omits non-whitelisted fields', () => {
+    const r = transformDscssItem({
+      list: {
+        eiaCd: 'X-1',
+        bizNm: '풍력단지',
+        rnum: 7 as unknown as string,
+        unknownField: 'should be omitted' as unknown as string,
+        ccilOrganNm: '원주청'
+      }
+    }) as TransformedRow;
+    const pl = JSON.parse(r.source_payload);
+    expect(pl.unknownField).toBeUndefined();
+    expect(pl.rnum).toBeUndefined();
+    expect(pl.eiaCd).toBe('X-1');
+    expect(pl.ccilOrganNm).toBe('원주청');
+  });
+
+  it('evaluation_year extracted from stepChangeDt (YYYY.MM.DD)', () => {
+    const r = transformDscssItem({
+      list: { eiaCd: 'A-1', bizNm: '풍력', stepChangeDt: '2024.01.05' }
+    }) as TransformedRow;
+    expect(r.evaluation_year).toBe(2024);
+  });
+
+  it('returns null when eiaCd missing', () => {
+    expect(
+      transformDscssItem({
+        list: { eiaCd: '', bizNm: '풍력' } as unknown as { eiaCd: string; bizNm: string }
+      })
+    ).toBeNull();
   });
 });

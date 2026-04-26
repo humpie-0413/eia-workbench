@@ -2,7 +2,8 @@ import { isOnshoreWindCandidate } from './wind-filter';
 import { parseRegion } from './region-parser';
 import { pickPayload } from './payload-whitelist';
 
-const SOURCE_DATASET = '15142998';
+const SOURCE_DATASET_DRAFT = '15142998';
+const SOURCE_DATASET_DSCSS = '15142987';
 
 export type QueriedBizGubunCd = 'C' | 'L';
 
@@ -52,8 +53,8 @@ export interface TransformedRow {
   capacity_mw: number | null;
   area_ha: number | null;
   evaluation_year: number | null;
-  evaluation_stage: '본안' | '전략';
-  source_dataset: '15142998';
+  evaluation_stage: '본안' | '전략' | 'unknown';
+  source_dataset: '15142998' | '15142987';
   source_payload: string;
 }
 
@@ -116,7 +117,7 @@ function parseYear(drfopStartDt: string | null, drfopTmdt: string | null): numbe
 
 export function transformItem(input: TransformInput): TransformedRow | null {
   const { stage, queriedBizGubunCd, list, detail } = input;
-  if (!isOnshoreWindCandidate({ bizGubunCd: queriedBizGubunCd, bizNm: list.bizNm })) return null;
+  if (!isOnshoreWindCandidate({ bizNm: list.bizNm })) return null;
 
   const merged: Record<string, unknown> = { ...list, ...detail };
   // PK 매핑 (CLAUDE.md §10.2 디폴트 액션 옵션 A): perCd 와 eiaCd 는
@@ -164,7 +165,50 @@ export function transformItem(input: TransformInput): TransformedRow | null {
       (merged.drfopTmdt as string | undefined) ?? null
     ),
     evaluation_stage: stage === 'strategy' ? '전략' : '본안',
-    source_dataset: SOURCE_DATASET,
+    source_dataset: SOURCE_DATASET_DRAFT,
+    source_payload: JSON.stringify(payload)
+  };
+}
+
+// 15142987 (협의현황) list-only 변환. detail API 호출은 후속 작업으로 분리.
+// list 응답에는 bizGubunCd / drfopTmdt / eiaAddrTxt / bizSize 등이 없으므로
+// 다수 컬럼이 null. evaluation_stage='unknown' (본안/전략 미식별).
+export interface DscssTransformInput {
+  list: Record<string, unknown> & { eiaCd: string; bizNm: string };
+}
+
+export function transformDscssItem(input: DscssTransformInput): TransformedRow | null {
+  const { list } = input;
+  if (!isOnshoreWindCandidate({ bizNm: list.bizNm })) return null;
+  const pk = list.eiaCd;
+  if (!pk) return null;
+  const seqRaw = list.eiaSeq;
+  const bizNm = String(list.bizNm);
+  const payload = pickPayload(list as Record<string, unknown>);
+  return {
+    eia_cd: pk,
+    eia_seq: seqRaw != null ? String(seqRaw) : null,
+    biz_gubun_cd: '',
+    biz_gubun_nm: '',
+    biz_nm: bizNm,
+    biz_main_nm: null,
+    approv_organ_nm: (list.ccilOrganNm as string | undefined) ?? null,
+    biz_money: null,
+    biz_size: null,
+    biz_size_dan: null,
+    drfop_tmdt: null,
+    drfop_start_dt: null,
+    drfop_end_dt: null,
+    eia_addr_txt: null,
+    industry: 'onshore_wind',
+    region_sido: null,
+    region_sido_code: null,
+    region_sigungu: null,
+    capacity_mw: parseCapacity(null, null, bizNm),
+    area_ha: parseArea(null, null, bizNm),
+    evaluation_year: parseYear(null, (list.stepChangeDt as string | undefined) ?? null),
+    evaluation_stage: 'unknown',
+    source_dataset: SOURCE_DATASET_DSCSS,
     source_payload: JSON.stringify(payload)
   };
 }

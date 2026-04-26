@@ -12,7 +12,10 @@ export const PAYLOAD_WHITELIST = [
   'drfopTmdt',
   'drfopStartDt',
   'drfopEndDt',
-  'eiaAddrTxt'
+  'eiaAddrTxt',
+  // 15142987 (discussion) list 응답 추가 필드
+  'ccilOrganNm',
+  'stepChangeDt'
 ] as const;
 
 export type PayloadKey = (typeof PAYLOAD_WHITELIST)[number];

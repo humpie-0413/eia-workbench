@@ -1,17 +1,10 @@
 import { PortalClient } from '../packages/eia-data/src/client';
+import { dscssBsnsListItemSchema } from '../packages/eia-data/src/types/discussion';
 import {
-  draftListItemSchema,
-  draftDetailItemSchema,
-  strategyDraftListItemSchema,
-  strategyDraftDetailItemSchema
-} from '../packages/eia-data/src/types/draft-display';
-import {
-  buildDraftListPath,
-  buildDetailPath,
-  WIND_BIZ_GUBN_CODES,
+  buildDscssListPath,
   WIND_SEARCH_TEXTS
-} from '../packages/eia-data/src/endpoints/draft-display';
-import { transformItem, type TransformedRow } from '../src/features/similar-cases/transform';
+} from '../packages/eia-data/src/endpoints/discussion';
+import { transformDscssItem, type TransformedRow } from '../src/features/similar-cases/transform';
 import { classifyOnshoreWind } from '../src/features/similar-cases/wind-filter';
 
 export interface IndexerEnv {
@@ -28,8 +21,6 @@ export interface IndexerOpts {
 
 export interface SkipReasons {
   list_schema_invalid: number;
-  detail_schema_invalid: number;
-  wind_gubn_invalid: number;
   wind_offshore: number;
   wind_not_keyword: number;
   transform_null: number;
@@ -46,7 +37,7 @@ export interface IndexerSummary {
 
 const DEFAULT_MAX_API_CALLS = 8000;
 const DEFAULT_NUM_OF_ROWS = 100;
-const DEFAULT_MAX_PAGES = 5;
+const DEFAULT_MAX_PAGES = 50;
 const MAX_LIST_FAIL_LOGS = 5;
 const MAX_NOT_KEYWORD_LOGS = 2;
 
@@ -63,8 +54,6 @@ export async function runIndexer(opts: IndexerOpts): Promise<IndexerSummary> {
   const rows: TransformedRow[] = [];
   const skip_reasons: SkipReasons = {
     list_schema_invalid: 0,
-    detail_schema_invalid: 0,
-    wind_gubn_invalid: 0,
     wind_offshore: 0,
     wind_not_keyword: 0,
     transform_null: 0
@@ -73,115 +62,69 @@ export async function runIndexer(opts: IndexerOpts): Promise<IndexerSummary> {
   let notKeywordLogged = 0;
 
   try {
-    for (const stage of ['draft', 'strategy'] as const) {
-      const listPath = buildDraftListPath(stage);
-      const detailPath = buildDetailPath(stage);
-      const listSchema = stage === 'draft' ? draftListItemSchema : strategyDraftListItemSchema;
-      const detailSchema =
-        stage === 'draft' ? draftDetailItemSchema : strategyDraftDetailItemSchema;
+    const listPath = buildDscssListPath();
+    queryLoop: for (const searchText of WIND_SEARCH_TEXTS) {
+      for (let pageNo = 1; pageNo <= maxPages; pageNo++) {
+        if (api_calls >= max) {
+          error = `api_calls limit reached (${api_calls})`;
+          break queryLoop;
+        }
+        const res = await client.call<unknown>({
+          path: listPath,
+          query: { type: 'json', pageNo, numOfRows, searchText }
+        });
+        api_calls++;
+        const items = normalizeItems<unknown>(getItem(res));
+        records_total += items.length;
+        if (items.length === 0) break;
 
-      stageLoop: for (const searchText of WIND_SEARCH_TEXTS) {
-        for (const bizGubn of WIND_BIZ_GUBN_CODES) {
-          for (let pageNo = 1; pageNo <= maxPages; pageNo++) {
-            if (api_calls >= max) {
-              error = `api_calls limit reached (${api_calls})`;
-              break stageLoop;
+        for (const raw of items) {
+          const listParsed = dscssBsnsListItemSchema.safeParse(raw);
+          if (!listParsed.success) {
+            if (listFailLogged < MAX_LIST_FAIL_LOGS) {
+              const issue = listParsed.error.issues[0];
+              console.warn(
+                JSON.stringify({
+                  kind: 'list_schema_fail',
+                  path: issue?.path,
+                  message: issue?.message,
+                  received_keys: raw && typeof raw === 'object' ? Object.keys(raw as object) : null
+                })
+              );
+              listFailLogged++;
             }
-            const res = await client.call<unknown>({
-              path: listPath,
-              query: { type: 'json', pageNo, numOfRows, bizGubn, searchText }
-            });
-            api_calls++;
-            const items = normalizeItems<unknown>(getItem(res));
-            records_total += items.length;
-            if (items.length === 0) break;
-
-            for (const raw of items) {
-              const listParsed = listSchema.safeParse(raw);
-              if (!listParsed.success) {
-                if (listFailLogged < MAX_LIST_FAIL_LOGS) {
-                  const issue = listParsed.error.issues[0];
-                  console.warn(
-                    JSON.stringify({
-                      kind: 'list_schema_fail',
-                      stage,
-                      bizGubn,
-                      path: issue?.path,
-                      message: issue?.message,
-                      received_keys:
-                        raw && typeof raw === 'object' ? Object.keys(raw as object) : null
-                    })
-                  );
-                  listFailLogged++;
-                }
-                records_skipped++;
-                skip_reasons.list_schema_invalid++;
-                continue;
-              }
-              const listItem = listParsed.data as Record<string, unknown> & { bizNm: string };
-              // 응답에 bizGubunCd 가 누락되므로 호출 파라미터 bizGubn 을 신뢰 소스로 사용
-              const cls = classifyOnshoreWind({
-                bizGubunCd: bizGubn,
-                bizNm: listItem.bizNm
-              });
-              if (cls !== 'ok') {
-                if (cls === 'not_wind_keyword' && notKeywordLogged < MAX_NOT_KEYWORD_LOGS) {
-                  console.warn(
-                    JSON.stringify({
-                      kind: 'wind_not_keyword',
-                      stage,
-                      bizGubn,
-                      bizNm: listItem.bizNm,
-                      received_keys: Object.keys(listItem)
-                    })
-                  );
-                  notKeywordLogged++;
-                }
-                records_skipped++;
-                if (cls === 'gubn_invalid') skip_reasons.wind_gubn_invalid++;
-                else if (cls === 'offshore') skip_reasons.wind_offshore++;
-                else skip_reasons.wind_not_keyword++;
-                continue;
-              }
-              if (api_calls >= max) {
-                error = `api_calls limit reached (${api_calls})`;
-                break stageLoop;
-              }
-              // stage 별 detail API PK 가 다름 (draft: eiaCd, strategy: perCd)
-              const detailQueryPk =
-                stage === 'strategy'
-                  ? { perCd: String(listItem.perCd ?? '') }
-                  : { eiaCd: String(listItem.eiaCd ?? '') };
-              const detailRes = await client.call<unknown>({
-                path: detailPath,
-                query: { type: 'json', ...detailQueryPk }
-              });
-              api_calls++;
-              const detailRaw = pickFirst(getItem(detailRes));
-              const detailParsed = detailSchema.safeParse({ ...listItem, ...(detailRaw ?? {}) });
-              if (!detailParsed.success) {
-                records_skipped++;
-                skip_reasons.detail_schema_invalid++;
-                continue;
-              }
-              const row = transformItem({
-                stage,
-                queriedBizGubunCd: bizGubn,
-                list: listItem as never,
-                detail: detailParsed.data as never
-              });
-              if (!row) {
-                records_skipped++;
-                skip_reasons.transform_null++;
-                continue;
-              }
-              rows.push(row);
-              records_added++;
-            }
+            records_skipped++;
+            skip_reasons.list_schema_invalid++;
+            continue;
           }
+          const listItem = listParsed.data;
+          const cls = classifyOnshoreWind({ bizNm: listItem.bizNm });
+          if (cls !== 'ok') {
+            if (cls === 'not_wind_keyword' && notKeywordLogged < MAX_NOT_KEYWORD_LOGS) {
+              console.warn(
+                JSON.stringify({
+                  kind: 'wind_not_keyword',
+                  bizNm: listItem.bizNm,
+                  received_keys: Object.keys(listItem)
+                })
+              );
+              notKeywordLogged++;
+            }
+            records_skipped++;
+            if (cls === 'offshore') skip_reasons.wind_offshore++;
+            else skip_reasons.wind_not_keyword++;
+            continue;
+          }
+          const row = transformDscssItem({ list: listItem as never });
+          if (!row) {
+            records_skipped++;
+            skip_reasons.transform_null++;
+            continue;
+          }
+          rows.push(row);
+          records_added++;
         }
       }
-      if (error) break;
     }
   } catch (e) {
     error = e instanceof Error ? e.message : String(e);
@@ -201,11 +144,6 @@ function getItem(res: unknown): unknown {
 function normalizeItems<T>(item: T | T[] | undefined): T[] {
   if (item == null) return [];
   return Array.isArray(item) ? item : [item];
-}
-
-function pickFirst<T>(item: T | T[] | undefined | null): T | null {
-  if (item == null) return null;
-  return Array.isArray(item) ? (item[0] ?? null) : item;
 }
 
 async function applyStageAndSwap(db: D1Database, rows: TransformedRow[]): Promise<void> {
