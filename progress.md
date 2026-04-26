@@ -1,7 +1,41 @@
 # progress.md
 
 ## 현재 목표
-`feature/similar-cases` v0 — Phase 0–7 완료 · 로컬 검증 green · PR 생성 대기 (`finishing-a-development-branch` Option 2). 다음: USER push + PR open + 운영 부트스트랩 1회 실측.
+similar-cases v0 운영 배포 완료 (PR #8 머지 + hotfix 9건 + 풍력 10건 적재 + 사용자 브라우저 검증 4건 PASS). 다음: P1 — detail API 통합 (`evaluation_stage` / `region` 채움).
+
+## 2026-04-26 similar-cases v0 운영 배포 완료 + hotfix 9건
+- **PR #8 머지** (squash `4ad871d` on main, 2026-04-26). 운영 D1 `migrations/0003_similar_cases.sql` 원격 적용.
+- **운영 검증 (사용자 브라우저, 4 PASS)**:
+  - `/cases` 검색 페이지 정상 렌더링
+  - 검색어 "풍력" → 미리보기 패널 정상
+  - EIASS deep-link 정상 (hotfix 후 404 해소)
+  - Markdown export 정상 (`docs/cases-2026-04-26.md` 산출물 보존)
+- **부트스트랩 결과**: 풍력 10건 적재 (전체 75건 중 onshore_wind filter 통과). source 데이터셋 = 15142987 (협의현황).
+- **hotfix 체인 (main 9 commits, 4ad871d → 49a0678)**:
+  - `356674b fix(portal-client): force _type=json query param (15142998 XML default)`
+  - `9d27bb4 chore(cases-indexer): add per-reason skip counters for diagnosis`
+  - `5a5413a fix(cases-indexer): list zod schema + bizGubunCd propagation`
+  - `6b20062 chore(cases-indexer): log first 5 zod fail issues for diagnosis`
+  - `5cea609 fix(cases-indexer): split strategy list/detail schema (perCd PK)`
+  - `5a8536a fix(cases-indexer): switch dataset 15142998 → 15142987 (협의현황)`
+  - `157279c docs(similar-cases): patch spec for 15142998 → 15142987 dataset switch`
+  - `2447043 fix(eiass-link): correct deep-link URL to /biz/base/info/searchListNew.do`
+  - `49a0678 fix(cases-ui): rename '승인기관' label to '협의기관' (data is ccilOrganNm)`
+- **추가 migration**: `0004_relax_cases_constraints.sql` (NOT NULL 완화 — bizSize·eiaAddrTxt 빈 값 인덱싱 허용).
+- **CLAUDE.md §10 신규** (`a8ff209`): §10.1 사전 결함 자동 제외 + §10.2 블로킹 시 디폴트 액션.
+- **알려진 한계 6건** (`docs/handover/2026-04-26-similar-cases-deployed.md` §3):
+  - 3.1 evaluation_stage='unknown' 모든 10건 (P1, detail API 통합으로 해결)
+  - 3.2 region NULL 모든 10건 (P1, 동일 PR)
+  - 3.3 approv_organ_nm 컬럼명·값 misalignment (P3, 운영 영향 없음)
+  - 3.4 cron 자동 활성화 안 됨 (`invalid cron string`) (P2)
+  - 3.5 eia_cases_sync 빈 응답 (인덱서 sync 행 INSERT 누락) (P2)
+  - 3.6 T0-2/T0-3/T0-5 미실측 (P3, 추가 데이터셋 부트스트랩 후 v1)
+- **다음 단계**:
+  - P1 — detail API 통합 (한계 §3.1 + §3.2 동시 해결)
+  - P2 — cron trigger 등록 디버깅 (§3.4)
+  - P2 — eia_cases_sync 행 INSERT 누락 (§3.5)
+  - P3 — approv_organ_nm 컬럼명 정정 (§3.3)
+  - 4건 follow-up GitHub Issue 사용자 등록 대기.
 
 ## 2026-04-25 feature/similar-cases v0 구현 완료 (Subagent-Driven Development)
 - **스코프**: `docs/plans/feature-similar-cases.md` (36 task / Phase 0–7) Auto Mode 자율 실행.
