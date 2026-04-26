@@ -2,6 +2,7 @@
 
 > Office Hours 8문항 (Q1–Q8) + 추가 노트 3건 반영. 사용자가 모든 추천안을 채택 (2026-04-25).
 > **2026-04-25 보정**: 사용자 직접 검증 결과 데이터셋 ID 15000800 은 GIS 좌표 기반 측정 API 로 확인되어 부적합. **15142998 환경영향평가 초안 공람정보** 로 교체. §2 / §4 / §6 / §10 / §12 패치.
+> **2026-04-26 보정**: 부트스트랩 실행 결과 15142998 은 현재 공람 진행 중인 사업만 노출 (총 15건 / 풍력 0건). 인덱싱 가치 부재. **15142987 환경영향평가 협의현황** 으로 재교체 (총 7,434건 / 풍력 후보 ~44건). list-only 적재로 단순화하고 detail 통합은 후속 작업으로 분리. §2 / §4 / §6 / §10 / §12 패치, migration 0004 추가.
 > 다음 단계: 본 spec 사용자 검토 → 승인 → `writing-plans`로 `docs/plans/feature-similar-cases.md` 작성.
 
 ## 1. 목적
@@ -19,16 +20,16 @@
 
 - 사용자: 환경영향평가사 (project-shell의 인증 사용자 그대로). B2B.
 - 대상 업종: **육상풍력 (onshore_wind)** 1개. 다른 업종은 v2.
-- 인덱스 데이터셋: data.go.kr **`15142998` 환경영향평가 초안 공람정보** 단일.
-  - Base URL: `https://apis.data.go.kr/1480523/EnvrnAffcEvlDraftDsplayInfoInqireService`
-  - Operation 4종 사용:
-    - `getDraftPblancDsplayListInfoInqire` (일반 환경평가 목록)
-    - `getDraftPblancDsplaybtntOpinionDetailInfoInqire` (일반 상세 by `eiaCd`)
-    - `getStrategyDraftPblancDsplayListInfoInqire` (전략환경평가 목록)
-    - `getStrategyDraftPblancDsplaybtntOpinionDetailInfoInqire` (전략 상세, `bizMoney/bizSize` 포함)
-  - 풍력 식별 필터: `bizGubn=C` (에너지개발) 또는 `bizGubn=L` (산지개발) → 인덱서가 `bizNm` 정규식으로 후처리.
-  - 일 호출 한도: 개발계정 **10,000회/일** (ADR 0001 의 1,000 가정 대비 10배 여유).
-- v1+ 후보 데이터셋: `15142987` 환경영향평가 협의현황 (협의의견·결과 풍부). 본문 텍스트 정책(§2-4) 별도 OH 후 도입.
+- 인덱스 데이터셋: data.go.kr **`15142987` 환경영향평가 협의현황** 단일 (2026-04-26 교체).
+  - Base URL: `https://apis.data.go.kr/1480523/EnvrnAffcEvlDscssSttusInfoInqireService`
+  - Operation 1종 사용 (v0):
+    - `getDscssBsnsListInfoInqire` (협의대상 사업 목록, `searchText` 지원)
+  - 풍력 식별 필터: list 응답에 `bizGubunCd` 가 없으므로 `bizNm` 정규식만 사용 (`/풍력/` AND NOT `/해상\s*풍력/`).
+  - 일 호출 한도: 개발계정 **10,000회/일**.
+  - 부트스트랩 추정: total 7,434건 / `searchText='풍력'|'해상풍력'|'육상풍력'` 페이지네이션 ≈ 80–100 호출.
+- 기존 후보 (rollback 보존, v0에서 인덱싱 안 함):
+  - `15142998` 환경영향평가 초안 공람정보 — 현재 공람 진행 중 사업만 노출 (총 15건). 풍력 0건이라 인덱싱 가치 부재. zod 스키마(`draftListItemSchema`/`strategyDraftListItemSchema`)와 endpoint 빌더는 코드 보존.
+- detail API 통합: list 적재 후 별도 후속 작업. operation 후보 `getDscssBsnsDetailInfoInqire` 등은 별도 OH/spec 후 도입.
 
 ## 3. 핵심 사용자 여정
 
@@ -50,8 +51,10 @@
 
 스키마는 **raw API 필드(snake_case)** 와 **derived/normalized 컬럼** 을 병기한다. 변환 알고리즘은 §4.3.
 
+> **2026-04-26 갱신**: migration 0004 적용 후 실제 운영 스키마는 (a) `biz_gubun_cd CHECK ('C','L')` 제거, (b) `evaluation_stage CHECK` 에 `'unknown'` 추가, (c) `source_dataset` 값이 `'15142987'`. 아래 SQL 은 0003 원본 — **현재 운영 정의는 `migrations/0004_relax_cases_constraints.sql` 참조**.
+
 ```sql
--- D1 migration 0003_similar_cases.sql
+-- D1 migration 0003_similar_cases.sql (initial)
 
 CREATE TABLE eia_cases (
   -- raw API fields (15142998 응답 그대로 보존)
@@ -141,15 +144,14 @@ CREATE TABLE eia_cases_sync (
 
 (1) **인덱서 단계 (cron, 풍력 1차 필터)**
 
-15142998 list operation은 `searchText` 파라미터를 지원한다 (서버측 LIKE). 인덱서는 `bizGubn=C` 또는 `bizGubn=L` 와 함께 다음 패턴을 순회 호출하여 풍력 후보를 수집한다:
+15142987 list operation 은 `searchText` 파라미터를 지원한다 (서버측 LIKE). 인덱서는 다음 패턴을 순회 호출하여 풍력 후보를 수집한다:
 
 ```
 searchText ∈ ['풍력', '해상풍력', '육상풍력']
-× bizGubn ∈ ['C', 'L']
-× 페이지네이션
+× 페이지네이션 (numOfRows=100)
 ```
 
-응답에서 `bizNm` 정규식 `/풍력|풍력발전/`로 후처리, 해상풍력은 v0에서 제외한다 (industry='onshore_wind' 가드).
+응답에 `bizGubunCd` 가 없으므로 `bizNm` 정규식 `/풍력/` 으로 식별하고, 해상풍력은 `/해상\s*풍력/` 로 제외한다 (industry='onshore_wind' 가드).
 
 (2) **사용자 검색 단계 (FTS5 + LIKE fallback, D1)**
 
@@ -169,14 +171,14 @@ searchText ∈ ['풍력', '해상풍력', '육상풍력']
 
 | derived 컬럼 | 출처 | 변환 규칙 | 실패 시 |
 |---|---|---|---|
-| `industry` | (queried `bizGubn`) + `bizNm` | (queried `bizGubn`) `∈ {'C','L'}` AND `/풍력|풍력발전/.test(bizNm)` AND NOT `/해상풍력|해상\s*풍력/.test(bizNm)` → `'onshore_wind'`. 실 응답에 `bizGubunCd` 가 누락되므로 인덱서 호출 파라미터를 신뢰 소스로 사용. | **skip** (행 미적재) |
+| `industry` | `bizNm` (regex only) | `/풍력/.test(bizNm)` AND NOT `/해상\s*풍력/.test(bizNm)` → `'onshore_wind'`. 15142987 list 응답에 `bizGubunCd` 가 부재하므로 regex 단독 식별 (2026-04-26). | **skip** (행 미적재) |
 | `region_sido` | `eiaAddrTxt` | 정규식 `^(서울|부산|대구|인천|광주|대전|울산|세종|경기|강원|충북|충남|전북|전남|경북|경남|제주)(특별시\|광역시\|특별자치시\|도\|특별자치도)?` 첫 매칭. 17개 시·도 LUT (`src/lib/region/sido.ts`) 재사용. | NULL |
 | `region_sido_code` | `region_sido` | 17개 시·도 → KOSTAT 2자리 코드 매핑 LUT (project-shell 의 `kostat-code.ts` 패턴). | NULL |
 | `region_sigungu` | `eiaAddrTxt` | `region_sido` 이후 토큰에서 `/(\S+?(?:시|군|구))/` 첫 매칭. 시·군·구 LUT 검증은 v1 (오탐 허용). | NULL |
 | `capacity_mw` | (전략) `bizSize`·`bizSizeDan` / (일반) `bizNm` | 우선순위 ① `bizSizeDan='MW' or 'kW' or '㎾'`이면 `bizSize` 숫자 추출 후 단위 변환 (kW→MW: ÷1000) ② `bizNm` 정규식 `/(\d+(?:\.\d+)?)\s*(MW|㎿)/i` 첫 매칭 ③ 둘 다 실패 → NULL | NULL (검색 결과에는 노출, 규모 facet 에서는 제외) |
 | `area_ha` | (전략) `bizSize`·`bizSizeDan` | `bizSizeDan` 분기: `'ha'` 그대로 / `'㎡'` ÷ 10000 / `'㎢'` × 100 / 그 외(`MW`, `kW` 등) → NULL. 일반 operation 응답에는 `bizSize` 가 없으므로 NULL. | NULL |
-| `evaluation_year` | `drfopTmdt` 또는 `drfopStartDt` | `drfopStartDt` 우선 (YYYY-MM-DD), 없으면 `drfopTmdt` 첫 4자리 정수 (점·대시 구분자 양쪽 허용). `< 2000` 또는 `> 현재연도+1` 이면 NULL. | NULL |
-| `evaluation_stage` | origin operation | `getDraftPblancDsplay*` 계열 → `'본안'`, `getStrategyDraftPblancDsplay*` 계열 → `'전략'`. | (origin operation 외 사용 안 함, CHECK 위반 시 적재 거부) |
+| `evaluation_year` | `stepChangeDt` (15142987) | 첫 4자리 정수 (점·대시 구분자 허용). `< 2000` 또는 `> 현재연도+1` 이면 NULL. 15142987 list 응답에는 `drfopStartDt`/`drfopTmdt` 가 없고 `stepChangeDt='YYYY.MM.DD'` 만 사용 가능. | NULL |
+| `evaluation_stage` | (15142987 list) | 협의현황 list 응답만으로는 본안/전략 식별 불가 → `'unknown'` 적재. detail 통합 후속 작업에서 `'본안'/'전략'` 구분 도입 예정. | (현재는 모두 'unknown') |
 | `source_payload` | list+detail merge | list 응답 item + detail 응답 item 의 화이트리스트 필드 (§4.1 컬럼 + 협의 메타) JSON.stringify. **본문 텍스트 필드는 화이트리스트 미포함** (§2-4, §10.4 재호스팅 가드). | (불가, 적재 거부) |
 | `eia_cd` | `eiaCd` | 그대로 (`PRIMARY KEY`). list 응답에서 누락된 행은 적재 거부. | (skip) |
 
@@ -254,13 +256,12 @@ searchText ∈ ['풍력', '해상풍력', '육상풍력']
   1. 환경영향평가 신규 협의 빈도가 일 단위가 아님.
   2. **10,000회/일** 한도 안전 마진 확보 (실측 전 추정).
   3. 첫 부트스트랩은 **수동 1회** (Wrangler `--var BOOTSTRAP=true` 식 트리거). 정기 cron은 그 후 활성화.
-- 호출량 모델 (cron 1회 sync 기준):
-  - list `getDraftPblancDsplayList...` × `searchText∈['풍력','육상풍력']` × `bizGubn∈['C','L']` × 페이지(`numOfRows=100`, 가정 ≤ 5p) = 4 × 5 = **≤ 20 호출**
-  - list `getStrategyDraft...` 동일 조합 = **≤ 20 호출**
-  - 풍력 후보 N건 식별 → detail by `eiaCd` (일반 + 전략 각각) = **≤ 2N 호출**
-  - 부트스트랩 추정: 풍력 누적 사업 N ≈ 200 → 총 ≈ 40 + 400 = **≤ 440 호출/sync** (실측 후 본 spec 패치)
-  - 주간 신규분만: ≤ 50 호출/주 추정. 한도(10,000/일)의 0.5% 미만.
-- 호출 한도 가드: 인덱서가 `api_calls > 8000` 도달 시 즉시 중단·`error`에 기록·다음 주 재개.
+- 호출량 모델 (cron 1회 sync 기준, 2026-04-26 갱신):
+  - list `getDscssBsnsListInfoInqire` × `searchText∈['풍력','해상풍력','육상풍력']` × 페이지(`numOfRows=100`, 부트스트랩 ≤ 50p) = 3 × 50 = **≤ 150 호출**
+  - detail 통합은 후속 commit (현재 list-only).
+  - 부트스트랩 실측 (15142987 total 7,434, 풍력 후보 ~44): **≤ 100 호출/sync** 예상.
+  - 주간 신규분만: ≤ 30 호출/주 추정. 한도(10,000/일)의 0.3% 미만.
+- 호출 한도 가드: 인덱서가 `api_calls > 8000` 도달 시 즉시 중단·`error`에 기록·다음 주 재개. (실측 호출량 ≤ 150 으로 큰 마진.)
 - 검색 API: D1 `prepare().bind().all()`. FTS5 + LIKE fallback (§4.2).
 - 클라이언트 상태: URL 쿼리 단일 소스 (facet/검색어/페이지). `nanostores` 미사용.
 - Markdown export: 클라이언트만으로 생성 (기존 `src/features/scoping/markdown-export.ts` 패턴 재사용).
@@ -302,7 +303,7 @@ searchText ∈ ['풍력', '해상풍력', '육상풍력']
 | §2-2 유료 API 금지 | data.go.kr 무료, FTS5 무료, LLM 미사용. ANTHROPIC_API_KEY 등 미참조. |
 | §2-3 법적 결론 단정 금지 | 검색 결과는 사실 메타데이터만. UI 문구에 "유사사례입니다" 단정 X, "참고 가능한 과거 사례" 표현. |
 | §2-4 EIASS 원문 재호스팅 금지 | 메타데이터(사업명/지역/규모/연도/주소)만 D1 저장. `eiaAddrTxt` 는 사업지 주소(메타)이며 본문 텍스트가 아니므로 적재 허용. 공람·협의의견 등 본문 텍스트 필드(있다면)는 `source_payload` 화이트리스트에 미포함, 인덱서가 trim. EIASS deep-link만. |
-| §2-5 MVP 범위 | Q8a 그대로. data.go.kr EIA 데이터셋 1종(15142998 환경영향평가 초안 공람정보)만 인덱싱. |
+| §2-5 MVP 범위 | Q8a 그대로. data.go.kr EIA 데이터셋 1종(15142987 환경영향평가 협의현황)만 인덱싱. 15142998 zod 스키마는 rollback 보존, 인덱서 경로에서 미사용. |
 | §5 표준 스키마 | 검색 결과는 분석 결과가 아니므로 `{result, basis, ...}` 미적용. 단 결과 페이지 하단에 고정 푸터 "본 도구는 검토 보조이며 현지조사·전문가 검토를 대체하지 않습니다." 유지. |
 | §9.2 단정 표현 | 카드/배지/툴팁/에러 문구에 "협의 통과", "승인됨", "법적으로 문제없음" 등 단정어 grep 차단 (기존 lint-copy.ts 규칙 그대로 적용). |
 
@@ -327,16 +328,17 @@ searchText ∈ ['풍력', '해상풍력', '육상풍력']
 
 ## 11. 운영 가드
 
-- 인덱스 부트스트랩 1회 호출량(현 추정 ≤ 440) 실측 후 §6 추정값 갱신 + cron 주기 재평가. 일 1회로 변경 시 `docs/design/feature-similar-cases.md` 업데이트 + 별도 commit.
+- 인덱스 부트스트랩 1회 호출량(현 추정 ≤ 150, 2026-04-26 갱신) 실측 후 §6 추정값 갱신 + cron 주기 재평가. 일 1회로 변경 시 `docs/design/feature-similar-cases.md` 업데이트 + 별도 commit.
 - 인덱스 행 수가 5000건을 넘으면 LIKE fallback 비용 측정 — 트라이그램 도입을 v1로 검토.
-- D1 마이그레이션 0003은 **운영 dry-run 후 적용**. project-shell의 0001/scoping의 0002 패턴 그대로.
-- 데이터셋 ID 정정 사실 (`15000800` → `15142998`) 은 §12 결정 로그 + ADR 0001 보강(별도 commit) 으로 추적.
+- D1 마이그레이션 0003 + 0004 는 **운영 dry-run 후 적용**. project-shell의 0001/scoping의 0002 패턴 그대로. 0004 는 `eia_cases` DROP & CREATE 이므로 (a) 적용 시점 운영 행수 0 인지 확인 후 (b) 인덱서 부트스트랩 재실행 필요.
+- 데이터셋 ID 변경 사실 (`15000800` → `15142998` → `15142987`) 은 §12 결정 로그 + ADR 0001 보강(별도 commit) 으로 추적.
+- detail API 통합 (15142987 detail operation 식별·zod·transform 확장) 은 별도 hotfix/commit 으로 분리. 현재 list-only 적재 → 다수 컬럼(eia_addr_txt, drfop_*, biz_size 등) NULL.
 
 ## 12. 결정 로그 (Office Hours 답변 요약)
 
 | Q | 결정 | 근거 |
 |---|------|------|
-| Q1 | **15142998** 단일 인덱싱 (보정) | 사례 검색 본질에 가장 직접. 초기 후보 `15000800` 은 GIS 측정 API 로 확인되어 부적합 (2026-04-25 사용자 검증). |
+| Q1 | **15142987** 단일 인덱싱 (재보정 2026-04-26) | 15142998 (공람정보) 은 현재 공람창 사업만 노출 → 풍력 0건. 15142987 (협의현황) 은 7,434건 전수, 풍력 후보 ~44건 확보. 초기 후보 `15000800` (2026-04-25 부적합 판정) 이력 유지. |
 | Q2 | 4 facet (업종/시·도/규모/연도) | 풍력 1업종이지만 v0에 충분 |
 | Q3 | 데스크톱 리스트+미리보기, 모바일 768px 이하 리스트만 | 지도는 좌표 결손 비용 ↑, 모바일은 단순화 |
 | Q4 | 메타데이터만, EIASS deep link | §2-4 정신 가장 보수적 해석 |
@@ -350,3 +352,4 @@ searchText ∈ ['풍력', '해상풍력', '육상풍력']
 - Q5 cron 주기: **주 1회 월요일 03:00 KST** (본 spec에서 결정).
 - Q8 v0 정렬: **최신순 1개만**. 관련도순(BM25)은 v1.
 - **데이터셋 ID 정정 (2026-04-25)**: 초기 spec 의 `15000800` 은 실제로 GIS 좌표 기반 환경 측정 API. 사례 검색용 정답은 `15142998` (환경영향평가 초안 공람정보). 사용자 직접 검증으로 확정. 일 한도도 **1,000 → 10,000** 으로 정정.
+- **데이터셋 재교체 (2026-04-26)**: 부트스트랩 1차 실행 결과 `15142998` 은 현재 공람 진행 사업만 노출 (총 15건, 풍력 0건). 인덱싱 가치 부재 확인 후 `15142987` (환경영향평가 협의현황, 7,434건) 으로 재교체. 응답 shape 변경 (bizGubunCd/drfopTmdt/eiaAddrTxt 등 부재) 에 따라 (a) zod 스키마 신규(`dscssBsnsListItemSchema`), (b) wind-filter regex-only, (c) transform list-only + `evaluation_stage='unknown'`, (d) migration 0004 (CHECK 완화) 도입. 기존 `15142998` zod 스키마는 rollback 가능성 위해 코드 보존. detail API 통합은 후속 commit 으로 분리.
