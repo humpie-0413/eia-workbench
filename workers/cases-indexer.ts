@@ -47,6 +47,7 @@ export interface IndexerSummary {
 const DEFAULT_MAX_API_CALLS = 8000;
 const DEFAULT_NUM_OF_ROWS = 100;
 const DEFAULT_MAX_PAGES = 5;
+const MAX_LIST_FAIL_LOGS = 5;
 
 export async function runIndexer(opts: IndexerOpts): Promise<IndexerSummary> {
   const max = opts.maxApiCalls ?? DEFAULT_MAX_API_CALLS;
@@ -67,6 +68,7 @@ export async function runIndexer(opts: IndexerOpts): Promise<IndexerSummary> {
     wind_not_keyword: 0,
     transform_null: 0
   };
+  let listFailLogged = 0;
 
   try {
     for (const stage of ['draft', 'strategy'] as const) {
@@ -95,6 +97,21 @@ export async function runIndexer(opts: IndexerOpts): Promise<IndexerSummary> {
             for (const raw of items) {
               const listParsed = listSchema.safeParse(raw);
               if (!listParsed.success) {
+                if (listFailLogged < MAX_LIST_FAIL_LOGS) {
+                  const issue = listParsed.error.issues[0];
+                  console.warn(
+                    JSON.stringify({
+                      kind: 'list_schema_fail',
+                      stage,
+                      bizGubn,
+                      path: issue?.path,
+                      message: issue?.message,
+                      received_keys:
+                        raw && typeof raw === 'object' ? Object.keys(raw as object) : null
+                    })
+                  );
+                  listFailLogged++;
+                }
                 records_skipped++;
                 skip_reasons.list_schema_invalid++;
                 continue;
