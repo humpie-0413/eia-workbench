@@ -22,8 +22,12 @@ export interface TransformInput {
    * 누락되므로 신뢰 소스를 호출 파라미터로 변경한다.
    */
   queriedBizGubunCd: QueriedBizGubunCd;
-  list: Record<string, unknown> & { eiaCd: string; bizNm: string };
-  detail: Record<string, unknown> & { eiaCd: string };
+  /**
+   * stage='draft' 면 list/detail 에 eiaCd, stage='strategy' 면 perCd 가 PK.
+   * 두 stage 의 응답 shape 가 다르므로 union 으로 받는다.
+   */
+  list: Record<string, unknown> & { bizNm: string };
+  detail: Record<string, unknown>;
 }
 
 export interface TransformedRow {
@@ -115,6 +119,19 @@ export function transformItem(input: TransformInput): TransformedRow | null {
   if (!isOnshoreWindCandidate({ bizGubunCd: queriedBizGubunCd, bizNm: list.bizNm })) return null;
 
   const merged: Record<string, unknown> = { ...list, ...detail };
+  // PK 매핑 (CLAUDE.md §10.2 디폴트 액션 옵션 A): perCd 와 eiaCd 는
+  // 발급 namespace 가 다르므로 같은 eia_cd 컬럼에 저장해도 충돌 가능성 매우 낮음.
+  // evaluation_stage='전략' 으로 구분.
+  const pk =
+    stage === 'strategy'
+      ? merged.perCd != null
+        ? String(merged.perCd)
+        : ''
+      : merged.eiaCd != null
+        ? String(merged.eiaCd)
+        : '';
+  if (!pk) return null;
+  const seqRaw = stage === 'strategy' ? merged.bizSeq : merged.eiaSeq;
   const region = parseRegion(String(merged.eiaAddrTxt ?? ''));
   const bizSize = (merged.bizSize as string | undefined) ?? null;
   const bizSizeDan = (merged.bizSizeDan as string | undefined) ?? null;
@@ -122,8 +139,8 @@ export function transformItem(input: TransformInput): TransformedRow | null {
 
   const payload = pickPayload(merged);
   return {
-    eia_cd: String(merged.eiaCd),
-    eia_seq: merged.eiaSeq ? String(merged.eiaSeq) : null,
+    eia_cd: pk,
+    eia_seq: seqRaw != null ? String(seqRaw) : null,
     biz_gubun_cd: queriedBizGubunCd,
     biz_gubun_nm: String(merged.bizGubunNm ?? ''),
     biz_nm: bizNm,

@@ -13,6 +13,21 @@ const baseDetail = {
   drfopStartDt: '2024-01-15',
   drfopEndDt: '2024-02-14'
 };
+
+const baseStrategyList = {
+  perCd: 'P-1',
+  bizSeq: 1,
+  bizGubunNm: '에너지개발',
+  bizNm: '강원평창풍력발전사업 30MW',
+  drfopTmdt: '2024-01-15 ~ 2024-02-14'
+};
+const baseStrategyDetail = {
+  ...baseStrategyList,
+  eiaAddrTxt: '강원특별자치도 평창군 봉평면',
+  drfopStartDt: '2024-01-15',
+  drfopEndDt: '2024-02-14'
+};
+
 const queriedC = 'C' as const;
 
 describe('transformItem', () => {
@@ -43,10 +58,11 @@ describe('transformItem', () => {
     expect(r.region_sido_code).toBe('51');
     expect(r.region_sigungu).toBe('평창군');
     expect(r.biz_gubun_cd).toBe('C');
+    expect(r.eia_cd).toBe('X-1');
   });
 
-  it('strategy: bizSize MW + bizSizeDan ha 복합 추출', () => {
-    const list = { ...baseList, bizNm: '영월새푸른풍력' };
+  it('strategy: bizSize MW + bizSizeDan ha 복합 추출 (perCd PK)', () => {
+    const list = { ...baseStrategyList, bizNm: '영월새푸른풍력' };
     const detail = { ...list, eiaAddrTxt: '강원 영월군', bizSize: '21', bizSizeDan: 'MW' };
     const r = transformItem({
       stage: 'strategy',
@@ -57,11 +73,13 @@ describe('transformItem', () => {
     expect(r.capacity_mw).toBe(21);
     expect(r.evaluation_stage).toBe('전략');
     expect(r.biz_gubun_cd).toBe('L');
+    expect(r.eia_cd).toBe('P-1');
+    expect(r.eia_seq).toBe('1');
   });
 
   it('bizSizeDan ㎡ → area_ha ÷10000', () => {
     const r = transformItem({
-      stage: 'strategy',
+      stage: 'draft',
       queriedBizGubunCd: queriedC,
       list: { ...baseList, bizNm: '풍력단지' },
       detail: { ...baseDetail, bizSize: '500000', bizSizeDan: '㎡' }
@@ -113,5 +131,36 @@ describe('transformItem', () => {
     }) as TransformedRow;
     expect(r.industry).toBe('onshore_wind');
     expect(r.biz_gubun_cd).toBe('C');
+  });
+
+  it('strategy: perCd 없으면 null (transform_null)', () => {
+    const r = transformItem({
+      stage: 'strategy',
+      queriedBizGubunCd: queriedC,
+      list: { bizNm: '풍력', bizGubunNm: '에너지개발' },
+      detail: { eiaAddrTxt: '강원' }
+    });
+    expect(r).toBeNull();
+  });
+
+  it('strategy: bizGubunNm 누락(실 응답) → 빈 문자열로 복원', () => {
+    const r = transformItem({
+      stage: 'strategy',
+      queriedBizGubunCd: queriedC,
+      list: { perCd: 'P-2', bizSeq: 2, bizNm: '강릉풍력' },
+      detail: { perCd: 'P-2', eiaAddrTxt: '강원 강릉시' }
+    }) as TransformedRow;
+    expect(r.eia_cd).toBe('P-2');
+    expect(r.biz_gubun_nm).toBe('');
+  });
+
+  it('strategy detail merges into list — eiaAddrTxt 우선', () => {
+    const r = transformItem({
+      stage: 'strategy',
+      queriedBizGubunCd: 'L',
+      list: { ...baseStrategyList, bizNm: '풍력' },
+      detail: { ...baseStrategyDetail, bizNm: '풍력', eiaAddrTxt: '강원 영월군' }
+    }) as TransformedRow;
+    expect(r.eia_addr_txt).toBe('강원 영월군');
   });
 });

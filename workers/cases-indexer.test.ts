@@ -176,7 +176,7 @@ describe('cases-indexer', () => {
     expect(count).toBeLessThanOrEqual(3);
   });
 
-  it('strategy stage overrides draft stage on eia_cd conflict', async () => {
+  it('strategy stage overrides draft stage on eia_cd conflict (perCd→eia_cd 매핑)', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn().mockImplementation((url: string) => {
@@ -189,8 +189,9 @@ describe('cases-indexer', () => {
                   body: {
                     items: {
                       item: {
-                        eiaCd: 'X-1',
-                        bizGubunCd: 'C',
+                        perCd: 'X-1',
+                        bizSeq: 1,
+                        ccilOrganCd: 'OR1',
                         bizGubunNm: '에너지개발',
                         bizNm: '풍력',
                         bizSize: '30',
@@ -228,6 +229,31 @@ describe('cases-indexer', () => {
             )
           );
         }
+        if (url.includes('Strategy')) {
+          return Promise.resolve(
+            new Response(
+              JSON.stringify({
+                response: {
+                  header: { resultCode: '00', resultMsg: 'OK' },
+                  body: {
+                    items: {
+                      item: [
+                        {
+                          perCd: 'X-1',
+                          bizSeq: 1,
+                          ccilOrganCd: 'OR1',
+                          bizNm: '풍력',
+                          drfopTmdt: '2025.01.01 ~ 2025.01.30'
+                        }
+                      ]
+                    }
+                  }
+                }
+              }),
+              { status: 200 }
+            )
+          );
+        }
         return Promise.resolve(
           new Response(
             JSON.stringify({
@@ -251,5 +277,84 @@ describe('cases-indexer', () => {
     await runIndexer({ env: { SERVICE_KEY: 'k', DB: db as never }, maxApiCalls: 8000 });
     const insert = db._exec.find((s) => /INSERT OR REPLACE INTO eia_cases_staging/i.test(s));
     expect(insert).toBeDefined();
+  });
+
+  it('strategy detail call uses perCd query param (not eiaCd)', async () => {
+    const calls: string[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation((url: string) => {
+        calls.push(url);
+        if (url.includes('Strategy') && url.includes('Detail')) {
+          return Promise.resolve(
+            new Response(
+              JSON.stringify({
+                response: {
+                  header: { resultCode: '00', resultMsg: 'OK' },
+                  body: {
+                    items: {
+                      item: {
+                        perCd: 'P-7',
+                        bizSeq: 7,
+                        ccilOrganCd: 'OR9',
+                        bizGubunNm: '에너지개발',
+                        bizNm: '풍력',
+                        eiaAddrTxt: '강원 평창군'
+                      }
+                    }
+                  }
+                }
+              }),
+              { status: 200 }
+            )
+          );
+        }
+        if (url.includes('Strategy')) {
+          return Promise.resolve(
+            new Response(
+              JSON.stringify({
+                response: {
+                  header: { resultCode: '00', resultMsg: 'OK' },
+                  body: {
+                    items: {
+                      item: [
+                        {
+                          perCd: 'P-7',
+                          bizSeq: 7,
+                          ccilOrganCd: 'OR9',
+                          bizNm: '풍력',
+                          drfopTmdt: '2025.01.01 ~ 2025.01.30'
+                        }
+                      ]
+                    }
+                  }
+                }
+              }),
+              { status: 200 }
+            )
+          );
+        }
+        // draft list: 빈 응답 (해당 stage 패스)
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              response: {
+                header: { resultCode: '00', resultMsg: 'OK' },
+                body: { items: { item: [] } }
+              }
+            }),
+            { status: 200 }
+          )
+        );
+      })
+    );
+    const db = makeD1();
+    await runIndexer({ env: { SERVICE_KEY: 'k', DB: db as never }, maxApiCalls: 8000 });
+    const strategyDetailCalls = calls.filter((u) => u.includes('Strategy') && u.includes('Detail'));
+    expect(strategyDetailCalls.length).toBeGreaterThan(0);
+    for (const u of strategyDetailCalls) {
+      expect(u).toMatch(/[?&]perCd=P-7/);
+      expect(u).not.toMatch(/[?&]eiaCd=/);
+    }
   });
 });

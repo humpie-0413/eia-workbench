@@ -43,10 +43,39 @@ describe('draft-display zod schemas', () => {
     }
   });
 
-  it('strategy detail allows bizMoney/bizSize/bizSizeDan', () => {
+  it('strategy list parses real shape (perCd, bizSeq, ccilOrganCd)', () => {
+    const ok = strategyDraftListItemSchema.safeParse({
+      bizNm: '영월새푸른풍력',
+      bizSeq: 1,
+      ccilOrganCd: 'OR1',
+      drfopTmdt: '2025.06.18 ~ 2025.07.15',
+      perCd: 'P-2025-001',
+      rnum: 1
+    });
+    expect(ok.success).toBe(true);
+    if (ok.success) {
+      expect(ok.data.perCd).toBe('P-2025-001');
+      expect(ok.data.bizSeq).toBe('1');
+    }
+  });
+
+  it('strategy list missing perCd → fail', () => {
+    const fail = strategyDraftListItemSchema.safeParse({
+      bizNm: '풍력',
+      bizSeq: 1,
+      drfopTmdt: '2025.01.01 ~ 2025.01.30'
+    });
+    expect(fail.success).toBe(false);
+    if (!fail.success) {
+      expect(fail.error.issues[0]?.path).toEqual(['perCd']);
+    }
+  });
+
+  it('strategy detail allows bizMoney/bizSize/bizSizeDan (perCd PK)', () => {
     const ok = strategyDraftDetailItemSchema.safeParse({
-      eiaCd: 'B-2024-002',
-      bizGubunCd: 'L',
+      perCd: 'P-2024-002',
+      bizSeq: 12,
+      ccilOrganCd: 'OR1',
       bizGubunNm: '산지개발',
       bizNm: '영월새푸른풍력',
       bizMoney: 50000000000,
@@ -57,7 +86,7 @@ describe('draft-display zod schemas', () => {
     expect(ok.success).toBe(true);
   });
 
-  it('detail items missing required eiaCd → fail', () => {
+  it('detail items missing required PK → fail', () => {
     expect(draftDetailItemSchema.safeParse({ bizNm: 'X' }).success).toBe(false);
     expect(strategyDraftListItemSchema.safeParse({ bizNm: 'Y' }).success).toBe(false);
   });

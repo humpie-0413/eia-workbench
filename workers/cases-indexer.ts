@@ -48,6 +48,7 @@ const DEFAULT_MAX_API_CALLS = 8000;
 const DEFAULT_NUM_OF_ROWS = 100;
 const DEFAULT_MAX_PAGES = 5;
 const MAX_LIST_FAIL_LOGS = 5;
+const MAX_NOT_KEYWORD_LOGS = 2;
 
 export async function runIndexer(opts: IndexerOpts): Promise<IndexerSummary> {
   const max = opts.maxApiCalls ?? DEFAULT_MAX_API_CALLS;
@@ -69,6 +70,7 @@ export async function runIndexer(opts: IndexerOpts): Promise<IndexerSummary> {
     transform_null: 0
   };
   let listFailLogged = 0;
+  let notKeywordLogged = 0;
 
   try {
     for (const stage of ['draft', 'strategy'] as const) {
@@ -116,13 +118,25 @@ export async function runIndexer(opts: IndexerOpts): Promise<IndexerSummary> {
                 skip_reasons.list_schema_invalid++;
                 continue;
               }
-              const listItem = listParsed.data;
+              const listItem = listParsed.data as Record<string, unknown> & { bizNm: string };
               // 응답에 bizGubunCd 가 누락되므로 호출 파라미터 bizGubn 을 신뢰 소스로 사용
               const cls = classifyOnshoreWind({
                 bizGubunCd: bizGubn,
                 bizNm: listItem.bizNm
               });
               if (cls !== 'ok') {
+                if (cls === 'not_wind_keyword' && notKeywordLogged < MAX_NOT_KEYWORD_LOGS) {
+                  console.warn(
+                    JSON.stringify({
+                      kind: 'wind_not_keyword',
+                      stage,
+                      bizGubn,
+                      bizNm: listItem.bizNm,
+                      received_keys: Object.keys(listItem)
+                    })
+                  );
+                  notKeywordLogged++;
+                }
                 records_skipped++;
                 if (cls === 'gubn_invalid') skip_reasons.wind_gubn_invalid++;
                 else if (cls === 'offshore') skip_reasons.wind_offshore++;
@@ -133,9 +147,14 @@ export async function runIndexer(opts: IndexerOpts): Promise<IndexerSummary> {
                 error = `api_calls limit reached (${api_calls})`;
                 break stageLoop;
               }
+              // stage 별 detail API PK 가 다름 (draft: eiaCd, strategy: perCd)
+              const detailQueryPk =
+                stage === 'strategy'
+                  ? { perCd: String(listItem.perCd ?? '') }
+                  : { eiaCd: String(listItem.eiaCd ?? '') };
               const detailRes = await client.call<unknown>({
                 path: detailPath,
-                query: { type: 'json', eiaCd: listItem.eiaCd }
+                query: { type: 'json', ...detailQueryPk }
               });
               api_calls++;
               const detailRaw = pickFirst(getItem(detailRes));
