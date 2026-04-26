@@ -32,7 +32,7 @@ export function exportCasesToMarkdown(items: EiaCase[], ctx: ExportContext): str
     const region = [c.region_sido, c.region_sigungu].filter(Boolean).join(' ');
     const capacity = c.capacity_mw != null ? `${c.capacity_mw} MW` : '미상';
     const year = c.evaluation_year != null ? String(c.evaluation_year) : '미상';
-    const link = eiassProjectUrl({ projectId: c.eia_cd });
+    const link = eiassProjectUrl(c.eia_cd);
     lines.push(
       `| ${esc(c.eia_cd)} | ${esc(c.biz_nm)} | ${esc(region)} | ${esc(capacity)} | ${year} | ${c.evaluation_stage} | [원문](${link}) |`
     );

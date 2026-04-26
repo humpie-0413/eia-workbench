@@ -326,6 +326,14 @@ searchText ∈ ['풍력', '해상풍력', '육상풍력']
 - 재호스팅 가드: `source_payload` 는 **§4.3 화이트리스트 필드만** JSON.stringify. API 응답에 본문 텍스트 필드(예: 공람 본문, 협의의견 전문)가 포함돼 들어오면 인덱서가 (a) alarm 로그 (b) 해당 필드 drop (c) `records_skipped` 증가 시키고 진행 — spec 위반 자동 차단.
 - detail 호출 정책: list 응답이 풍력 candidate 으로 식별된 행만 detail 호출 (전체 list × detail 회피). detail 응답에 `eiaCd` 누락 또는 list 와 불일치 시 skip.
 
+### 10.5 EIASS deep-link URL 형식
+
+- **현행 URL**: `https://www.eiass.go.kr/biz/base/info/searchListNew.do?menu=biz&sKey=BIZ_CD&sVal=<eiaCd>`
+- 매핑: data.go.kr 의 `eiaCd` ≡ EIASS 의 `BIZ_CD`. 사용자 직접 검증 (2026-04-26).
+- 함수 시그니처: `eiassProjectUrl(eiaCd: string): string`. `encodeURIComponent` 적용.
+- URL 패턴 변경 시 `packages/eia-data/src/deep-link.ts` 단일 지점만 갱신.
+- 폐기된 패턴: `/proj/view.do?projectId=` (404, 2026-04-26 확인).
+
 ## 11. 운영 가드
 
 - 인덱스 부트스트랩 1회 호출량(현 추정 ≤ 150, 2026-04-26 갱신) 실측 후 §6 추정값 갱신 + cron 주기 재평가. 일 1회로 변경 시 `docs/design/feature-similar-cases.md` 업데이트 + 별도 commit.
@@ -353,3 +361,4 @@ searchText ∈ ['풍력', '해상풍력', '육상풍력']
 - Q8 v0 정렬: **최신순 1개만**. 관련도순(BM25)은 v1.
 - **데이터셋 ID 정정 (2026-04-25)**: 초기 spec 의 `15000800` 은 실제로 GIS 좌표 기반 환경 측정 API. 사례 검색용 정답은 `15142998` (환경영향평가 초안 공람정보). 사용자 직접 검증으로 확정. 일 한도도 **1,000 → 10,000** 으로 정정.
 - **데이터셋 재교체 (2026-04-26)**: 부트스트랩 1차 실행 결과 `15142998` 은 현재 공람 진행 사업만 노출 (총 15건, 풍력 0건). 인덱싱 가치 부재 확인 후 `15142987` (환경영향평가 협의현황, 7,434건) 으로 재교체. 응답 shape 변경 (bizGubunCd/drfopTmdt/eiaAddrTxt 등 부재) 에 따라 (a) zod 스키마 신규(`dscssBsnsListItemSchema`), (b) wind-filter regex-only, (c) transform list-only + `evaluation_stage='unknown'`, (d) migration 0004 (CHECK 완화) 도입. 기존 `15142998` zod 스키마는 rollback 가능성 위해 코드 보존. detail API 통합은 후속 commit 으로 분리.
+- **EIASS deep-link URL 보정 (2026-04-26)**: 기존 `https://www.eiass.go.kr/proj/view.do?projectId=<eiaCd>` 가 404 응답. 사용자 브라우저 직접 검증 결과 실제 동작 URL 은 `/biz/base/info/searchListNew.do?menu=biz&sKey=BIZ_CD&sVal=<eiaCd>` (BIZ_CD ≡ eiaCd). `eiassProjectUrl(ref: EiassProjectRef)` → `eiassProjectUrl(eiaCd: string)` 시그니처 단순화. `EiassProjectRef` 타입 제거. 모든 caller (markdown-export, CasePreviewPane, [caseId].astro) 호출부 수정. §10.5 신설.

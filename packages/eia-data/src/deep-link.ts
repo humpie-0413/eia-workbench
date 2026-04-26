@@ -6,21 +6,19 @@
  * 원문을 재호스팅하지 않는다 (CLAUDE.md §2-4).
  *
  * EIASS 서비스 URL 패턴이 바뀌면 이 파일에서만 업데이트한다.
+ *
+ * 2026-04-26 보정: /proj/view.do?projectId= 는 404. 실제 동작 URL 은
+ *   /biz/base/info/searchListNew.do?menu=biz&sKey=BIZ_CD&sVal=<eiaCd>
+ * 이며 BIZ_CD 는 data.go.kr 의 eiaCd 와 동일하므로 eiaCd 만 받는다.
  */
 
 const EIASS_BASE = 'https://www.eiass.go.kr';
-
-export interface EiassProjectRef {
-  /** EIASS 사업 식별자 */
-  projectId: string;
-}
 
 /**
  * EIASS 사업 상세 페이지 URL 을 반환한다.
  * URL 패턴은 이 함수 내부에만 두어 외부 변경 영향을 격리.
  */
-export function eiassProjectUrl(ref: EiassProjectRef): string {
-  const url = new URL('/proj/view.do', EIASS_BASE);
-  url.searchParams.set('projectId', ref.projectId);
-  return url.toString();
+export function eiassProjectUrl(eiaCd: string): string {
+  const encoded = encodeURIComponent(eiaCd);
+  return `${EIASS_BASE}/biz/base/info/searchListNew.do?menu=biz&sKey=BIZ_CD&sVal=${encoded}`;
 }

@@ -33,7 +33,7 @@ export default function CasePreviewPane({ eiaCase }: { eiaCase: EiaCase | null }
         </div>
       </dl>
       <a
-        href={eiassProjectUrl({ projectId: eiaCase.eia_cd })}
+        href={eiassProjectUrl(eiaCase.eia_cd)}
         target="_blank"
         rel="noreferrer"
         className="inline-flex h-9 items-center rounded-md bg-primary px-3 text-small text-white hover:bg-primary-hover"

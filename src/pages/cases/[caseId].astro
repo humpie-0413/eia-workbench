@@ -48,7 +48,7 @@ if (!row) return new Response('not found', { status: 404 });
     </div>
   </dl>
   <a
-    href={eiassProjectUrl({ projectId: row.eia_cd })}
+    href={eiassProjectUrl(row.eia_cd)}
     target="_blank"
     rel="noreferrer"
     class="mt-4 inline-flex h-10 items-center rounded-md bg-primary px-4 text-small text-white hover:bg-primary-hover"
