@@ -28,7 +28,7 @@ export default function CasePreviewPane({ eiaCase }: { eiaCase: EiaCase | null }
           </dd>
         </div>
         <div>
-          <dt className="inline text-text-secondary">승인기관: </dt>
+          <dt className="inline text-text-secondary">협의기관: </dt>
           <dd className="inline">{eiaCase.approv_organ_nm ?? '미상'}</dd>
         </div>
       </dl>
