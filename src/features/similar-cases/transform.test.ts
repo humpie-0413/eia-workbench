@@ -242,4 +242,46 @@ describe('transformDscssItem (15142987 list-only)', () => {
       })
     ).toBeNull();
   });
+
+  it('P1 — Ing detail merge: stateNm "1차 협의" → 본안 + region 영양 LUT 매치', () => {
+    const r = transformDscssItem({
+      list: { eiaCd: 'DG2009L001', bizNm: '영양풍력발전단지 건설사업' },
+      detailItems: [{ stateNm: '1차 협의', resReplyDt: '2024-01-01', applyDt: '2024-01-01' }]
+    }) as TransformedRow;
+    expect(r.evaluation_stage).toBe('본안');
+    expect(r.region_sido).toBe('경상북도');
+    expect(r.region_sido_code).toBe('47');
+    expect(r.region_sigungu).toBe('영양군');
+    const pl = JSON.parse(r.source_payload);
+    expect(pl.stateNm).toBe('1차 협의');
+    expect(pl.matched_token).toBe('영양');
+  });
+
+  it('P1 — detailItems empty → list-only fallback (stage unknown, region from bizNm)', () => {
+    const r = transformDscssItem({
+      list: { eiaCd: 'DG2018C001', bizNm: '풍백 풍력발전단지 조성사업' }, // LUT 미등록 토큰
+      detailItems: []
+    }) as TransformedRow;
+    expect(r.evaluation_stage).toBe('unknown');
+    expect(r.region_sido).toBeNull();
+    expect(r.region_sigungu).toBeNull();
+  });
+
+  it('P1 — detailItems undefined (call 실패 fallback) → unknown + region 시도', () => {
+    const r = transformDscssItem({
+      list: { eiaCd: 'GW2025C001', bizNm: '양양 내현풍력발전단지' },
+      detailItems: undefined
+    }) as TransformedRow;
+    expect(r.evaluation_stage).toBe('unknown');
+    expect(r.region_sido).toBe('강원도');
+    expect(r.region_sigungu).toBe('양양군');
+  });
+
+  it('P1 — Ing detail "전략환경영향평가" → 전략', () => {
+    const r = transformDscssItem({
+      list: { eiaCd: 'X-1', bizNm: '강릉풍력' },
+      detailItems: [{ stateNm: '전략환경영향평가', resReplyDt: '2024-01-01', applyDt: '2024-01-01' }]
+    }) as TransformedRow;
+    expect(r.evaluation_stage).toBe('전략');
+  });
 });
