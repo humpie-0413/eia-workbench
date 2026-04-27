@@ -12,23 +12,37 @@ describe('mapEvaluationStage', () => {
   });
 
   it('stateNm "전략환경영향평가" → 전략', () => {
-    expect(mapEvaluationStage([{ stateNm: '전략환경영향평가', resReplyDt: '2024-01-01', applyDt: '2024-01-01' }])).toBe('전략');
+    expect(
+      mapEvaluationStage([
+        { stateNm: '전략환경영향평가', resReplyDt: '2024-01-01', applyDt: '2024-01-01' }
+      ])
+    ).toBe('전략');
   });
 
   it('stateNm "1차 협의" → 본안', () => {
-    expect(mapEvaluationStage([{ stateNm: '1차 협의', resReplyDt: '2024-01-01', applyDt: '2024-01-01' }])).toBe('본안');
+    expect(
+      mapEvaluationStage([{ stateNm: '1차 협의', resReplyDt: '2024-01-01', applyDt: '2024-01-01' }])
+    ).toBe('본안');
   });
 
   it('stateNm "변경협의" → 본안', () => {
-    expect(mapEvaluationStage([{ stateNm: '변경협의', resReplyDt: '2024-01-01', applyDt: '2024-01-01' }])).toBe('본안');
+    expect(
+      mapEvaluationStage([{ stateNm: '변경협의', resReplyDt: '2024-01-01', applyDt: '2024-01-01' }])
+    ).toBe('본안');
   });
 
   it('stateNm "협의" (정확 일치) → 본안', () => {
-    expect(mapEvaluationStage([{ stateNm: '협의', resReplyDt: '2024-01-01', applyDt: '2024-01-01' }])).toBe('본안');
+    expect(
+      mapEvaluationStage([{ stateNm: '협의', resReplyDt: '2024-01-01', applyDt: '2024-01-01' }])
+    ).toBe('본안');
   });
 
   it('stateNm "소규모환경영향평가" → unknown', () => {
-    expect(mapEvaluationStage([{ stateNm: '소규모환경영향평가', resReplyDt: '2024-01-01', applyDt: '2024-01-01' }])).toBe('unknown');
+    expect(
+      mapEvaluationStage([
+        { stateNm: '소규모환경영향평가', resReplyDt: '2024-01-01', applyDt: '2024-01-01' }
+      ])
+    ).toBe('unknown');
   });
 
   it('정렬 — resReplyDt DESC 우선, items[0] 기준 매핑', () => {

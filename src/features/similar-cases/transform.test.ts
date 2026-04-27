@@ -280,7 +280,9 @@ describe('transformDscssItem (15142987 list-only)', () => {
   it('P1 — Ing detail "전략환경영향평가" → 전략', () => {
     const r = transformDscssItem({
       list: { eiaCd: 'X-1', bizNm: '강릉풍력' },
-      detailItems: [{ stateNm: '전략환경영향평가', resReplyDt: '2024-01-01', applyDt: '2024-01-01' }]
+      detailItems: [
+        { stateNm: '전략환경영향평가', resReplyDt: '2024-01-01', applyDt: '2024-01-01' }
+      ]
     }) as TransformedRow;
     expect(r.evaluation_stage).toBe('전략');
   });

@@ -205,9 +205,10 @@ describe('runIndexer — P1 Ing detail integration', () => {
     return {
       response: {
         header: { resultCode: '00', resultMsg: 'OK' },
-        body: items.length === 0
-          ? { totalCount: 0, items: '' }
-          : { totalCount: items.length, items: { item: items } }
+        body:
+          items.length === 0
+            ? { totalCount: 0, items: '' }
+            : { totalCount: items.length, items: { item: items } }
       }
     };
   }
@@ -217,12 +218,17 @@ describe('runIndexer — P1 Ing detail integration', () => {
   }
 
   it('Ing detail success → detail_called/success/region_matched 카운트', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string) => {
-      const body = urlIs(url, 'list')
-        ? listResp([{ eiaCd: 'DG2009L001', bizNm: '영양풍력발전단지', eiaSeq: 1 }])
-        : ingDetailResp([{ stateNm: '1차 협의', resReplyDt: '2024-01-01', applyDt: '2024-01-01' }]);
-      return Promise.resolve(new Response(JSON.stringify(body), { status: 200 }));
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation((url: string) => {
+        const body = urlIs(url, 'list')
+          ? listResp([{ eiaCd: 'DG2009L001', bizNm: '영양풍력발전단지', eiaSeq: 1 }])
+          : ingDetailResp([
+              { stateNm: '1차 협의', resReplyDt: '2024-01-01', applyDt: '2024-01-01' }
+            ]);
+        return Promise.resolve(new Response(JSON.stringify(body), { status: 200 }));
+      })
+    );
     const db = makeD1();
     const summary = await runIndexer({
       env: { SERVICE_KEY: 'k', DB: db as never },
@@ -236,16 +242,30 @@ describe('runIndexer — P1 Ing detail integration', () => {
 
   it('Ing detail HTTP fail 1회 → retry → success', async () => {
     let detailAttempt = 0;
-    vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string) => {
-      if (urlIs(url, 'list')) {
-        return Promise.resolve(new Response(JSON.stringify(listResp([{ eiaCd: 'X-1', bizNm: '영양풍력' }])), { status: 200 }));
-      }
-      detailAttempt++;
-      if (detailAttempt === 1) {
-        return Promise.resolve(new Response('boom', { status: 500 }));
-      }
-      return Promise.resolve(new Response(JSON.stringify(ingDetailResp([{ stateNm: '협의', resReplyDt: '2024-01-01', applyDt: '2024-01-01' }])), { status: 200 }));
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation((url: string) => {
+        if (urlIs(url, 'list')) {
+          return Promise.resolve(
+            new Response(JSON.stringify(listResp([{ eiaCd: 'X-1', bizNm: '영양풍력' }])), {
+              status: 200
+            })
+          );
+        }
+        detailAttempt++;
+        if (detailAttempt === 1) {
+          return Promise.resolve(new Response('boom', { status: 500 }));
+        }
+        return Promise.resolve(
+          new Response(
+            JSON.stringify(
+              ingDetailResp([{ stateNm: '협의', resReplyDt: '2024-01-01', applyDt: '2024-01-01' }])
+            ),
+            { status: 200 }
+          )
+        );
+      })
+    );
     const db = makeD1();
     const summary = await runIndexer({
       env: { SERVICE_KEY: 'k', DB: db as never },
@@ -257,12 +277,19 @@ describe('runIndexer — P1 Ing detail integration', () => {
   });
 
   it('Ing detail 모두 fail (retry 후도) → list-only fallback (no error)', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string) => {
-      if (urlIs(url, 'list')) {
-        return Promise.resolve(new Response(JSON.stringify(listResp([{ eiaCd: 'X-1', bizNm: '영양풍력' }])), { status: 200 }));
-      }
-      return Promise.resolve(new Response('boom', { status: 500 }));
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation((url: string) => {
+        if (urlIs(url, 'list')) {
+          return Promise.resolve(
+            new Response(JSON.stringify(listResp([{ eiaCd: 'X-1', bizNm: '영양풍력' }])), {
+              status: 200
+            })
+          );
+        }
+        return Promise.resolve(new Response('boom', { status: 500 }));
+      })
+    );
     const db = makeD1();
     const summary = await runIndexer({
       env: { SERVICE_KEY: 'k', DB: db as never },
@@ -275,12 +302,15 @@ describe('runIndexer — P1 Ing detail integration', () => {
   });
 
   it('Ing detail empty items (totalCount=0) → list-only fallback (정상 흐름)', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string) => {
-      const body = urlIs(url, 'list')
-        ? listResp([{ eiaCd: 'X-1', bizNm: '영양풍력' }])
-        : ingDetailResp([]);
-      return Promise.resolve(new Response(JSON.stringify(body), { status: 200 }));
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation((url: string) => {
+        const body = urlIs(url, 'list')
+          ? listResp([{ eiaCd: 'X-1', bizNm: '영양풍력' }])
+          : ingDetailResp([]);
+        return Promise.resolve(new Response(JSON.stringify(body), { status: 200 }));
+      })
+    );
     const db = makeD1();
     const summary = await runIndexer({
       env: { SERVICE_KEY: 'k', DB: db as never },

@@ -46,4 +46,13 @@ describe('deriveRegionFromBizNm', () => {
     const r = deriveRegionFromBizNm('연천 영양 풍력'); // 연천 미등록 → 영양 LUT 매치
     expect(r.matched_token).toBe('영양');
   });
+
+  it('어근-only 운영 데이터 패턴 — "강릉 안인풍력발전사업" (cases-2026-04-26.md)', () => {
+    // suffix 없이 공백 + 부사업명 결합. SIGUNGU_TOKEN regex 미매치 → step 2.5 substring fallback.
+    const r = deriveRegionFromBizNm('강릉 안인풍력발전사업');
+    expect(r.matched_sido).toBe('강원도');
+    expect(r.matched_sigungu).toBe('강릉시');
+    expect(r.matched_token).toBe('강릉');
+    expect(r.sidoCode).toBe('51');
+  });
 });
