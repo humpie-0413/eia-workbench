@@ -166,12 +166,14 @@ describe('cases-indexer (15142987 discussion list)', () => {
     expect(count).toBeLessThanOrEqual(3);
   });
 
-  it('uses 15142987 dscss list endpoint (no draft/strategy paths)', async () => {
+  it('uses 15142987 dscss endpoints (no draft/strategy paths)', async () => {
     const calls: string[] = [];
     vi.stubGlobal(
       'fetch',
       vi.fn().mockImplementation((url: string) => {
         calls.push(url);
+        // detail mock 포함 — list 와 detail 모두 baseListResp 형태로 응답해도 envelope OK.
+        // Phase 0 RED 케이스 (detail 통합) 추가 후 detail 호출이 1회 발생.
         return Promise.resolve(new Response(JSON.stringify(baseListResp), { status: 200 }));
       })
     );
@@ -183,8 +185,9 @@ describe('cases-indexer (15142987 discussion list)', () => {
     });
     expect(calls.length).toBeGreaterThan(0);
     for (const u of calls) {
+      // 15142987 service base path 동일. list 또는 Ing detail 둘 중 하나여야 함.
       expect(u).toMatch(/EnvrnAffcEvlDscssSttusInfoInqireService/);
-      expect(u).toMatch(/getDscssBsnsListInfoInqire/);
+      expect(u).toMatch(/getDscssBsnsListInfoInqire|getDscssSttusDscssIngDetailInfoInqire/);
       expect(u).not.toMatch(/Draft/);
       expect(u).not.toMatch(/Strategy/);
     }

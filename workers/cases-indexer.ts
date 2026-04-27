@@ -1,7 +1,12 @@
 import { PortalClient } from '../packages/eia-data/src/client';
-import { dscssBsnsListItemSchema } from '../packages/eia-data/src/types/discussion';
+import {
+  dscssBsnsListItemSchema,
+  dscssIngDetailItemSchema,
+  type DscssIngDetailItem
+} from '../packages/eia-data/src/types/discussion';
 import {
   buildDscssListPath,
+  buildDscssIngDetailPath,
   WIND_SEARCH_TEXTS
 } from '../packages/eia-data/src/endpoints/discussion';
 import { transformDscssItem, type TransformedRow } from '../src/features/similar-cases/transform';
@@ -33,6 +38,13 @@ export interface IndexerSummary {
   api_calls: number;
   error: string | null;
   skip_reasons: SkipReasons;
+  // P1: detail 카운터 (spec §10.4 detail 호출 정책)
+  detail_called: number;
+  detail_success: number;
+  detail_retry: number;
+  detail_failed: number;
+  region_matched: number;
+  region_unmatched: number;
 }
 
 const DEFAULT_MAX_API_CALLS = 8000;
@@ -41,15 +53,72 @@ const DEFAULT_MAX_PAGES = 50;
 const MAX_LIST_FAIL_LOGS = 5;
 const MAX_NOT_KEYWORD_LOGS = 2;
 
+async function fetchIngDetail(
+  client: PortalClient,
+  eiaCd: string
+): Promise<DscssIngDetailItem[] | undefined> {
+  const path = buildDscssIngDetailPath();
+  const res = await client.call<unknown>({
+    path,
+    query: { type: 'json', eiaCd, numOfRows: 100, pageNo: 1 }
+  });
+  const r = res as {
+    response?: { header?: { resultCode?: string }; body?: { items?: unknown; totalCount?: unknown } };
+  };
+  if (r?.response?.header?.resultCode !== '00') {
+    throw new Error(`detail header non-OK: ${r?.response?.header?.resultCode}`);
+  }
+  const itemsField = r?.response?.body?.items;
+  // empty body: items='' (string, totalCount=0) or { item: undefined }
+  if (!itemsField || typeof itemsField === 'string') return [];
+  const item = (itemsField as { item?: unknown }).item;
+  const arr = Array.isArray(item) ? item : item != null ? [item] : [];
+  // zod safeParse — 파싱 실패한 항목 skip (전체 fail 아님)
+  const parsed: DscssIngDetailItem[] = [];
+  for (const it of arr) {
+    const p = dscssIngDetailItemSchema.safeParse(it);
+    if (p.success) parsed.push(p.data);
+  }
+  return parsed;
+}
+
+async function fetchIngDetailWithRetry(
+  client: PortalClient,
+  eiaCd: string,
+  counter: { retry: number; failed: number }
+): Promise<DscssIngDetailItem[] | undefined> {
+  try {
+    return await fetchIngDetail(client, eiaCd);
+  } catch {
+    counter.retry++;
+    try {
+      return await fetchIngDetail(client, eiaCd);
+    } catch {
+      counter.failed++;
+      return undefined; // list-only fallback
+    }
+  }
+}
+
 export async function runIndexer(opts: IndexerOpts): Promise<IndexerSummary> {
   const max = opts.maxApiCalls ?? DEFAULT_MAX_API_CALLS;
   const numOfRows = opts.numOfRows ?? DEFAULT_NUM_OF_ROWS;
   const maxPages = opts.maxPagesPerQuery ?? DEFAULT_MAX_PAGES;
   const client = new PortalClient(opts.env);
+  // detail 호출은 outer fetchIngDetailWithRetry 가 retry/fallback 책임 (spec §10.4
+  // detail 호출 정책). PortalClient 내부 retry 까지 겹치면 detail_retry 카운터가
+  // 부정확해지고 단일 호출당 5xx 시 최대 4 시도로 부풀어 api_calls 한도를 잠식.
+  const detailClient = new PortalClient(opts.env, { retries: 0 });
   let api_calls = 0;
   let records_total = 0;
   let records_added = 0;
   let records_skipped = 0;
+  let detail_called = 0;
+  let detail_success = 0;
+  let detail_retry = 0;
+  let detail_failed = 0;
+  let region_matched = 0;
+  let region_unmatched = 0;
   let error: string | null = null;
   const rows: TransformedRow[] = [];
   const skip_reasons: SkipReasons = {
@@ -60,6 +129,9 @@ export async function runIndexer(opts: IndexerOpts): Promise<IndexerSummary> {
   };
   let listFailLogged = 0;
   let notKeywordLogged = 0;
+  // 3개 searchText (풍력/해상풍력/육상풍력) 중복 방지: eiaCd 기준 dedup.
+  // D1 INSERT OR REPLACE 가 있어도 detail_called/api_calls 가 3 배로 부풀어 spec 임계 왜곡.
+  const seenEiaCd = new Set<string>();
 
   try {
     const listPath = buildDscssListPath();
@@ -98,6 +170,10 @@ export async function runIndexer(opts: IndexerOpts): Promise<IndexerSummary> {
             continue;
           }
           const listItem = listParsed.data;
+          // dedup: 동일 eiaCd 가 2번째 이후 검색어에서 다시 나오면 skip.
+          if (seenEiaCd.has(listItem.eiaCd)) {
+            continue;
+          }
           const cls = classifyOnshoreWind({ bizNm: listItem.bizNm });
           if (cls !== 'ok') {
             if (cls === 'not_wind_keyword' && notKeywordLogged < MAX_NOT_KEYWORD_LOGS) {
@@ -115,12 +191,28 @@ export async function runIndexer(opts: IndexerOpts): Promise<IndexerSummary> {
             else skip_reasons.wind_not_keyword++;
             continue;
           }
-          const row = transformDscssItem({ list: listItem as never });
+          // 통과 (onshore wind candidate) → seen 마킹.
+          seenEiaCd.add(listItem.eiaCd);
+          // P1: list 통과 → Ing detail call (retry 1) → transform (spec §10.4)
+          let detailItems: DscssIngDetailItem[] | undefined;
+          if (api_calls < max) {
+            detail_called++;
+            const counter = { retry: 0, failed: 0 };
+            detailItems = await fetchIngDetailWithRetry(detailClient, listItem.eiaCd, counter);
+            api_calls += 1 + counter.retry; // 본 호출 + retry
+            detail_retry += counter.retry;
+            if (detailItems !== undefined) detail_success++;
+            else detail_failed += counter.failed;
+          }
+
+          const row = transformDscssItem({ list: listItem as never, detailItems });
           if (!row) {
             records_skipped++;
             skip_reasons.transform_null++;
             continue;
           }
+          if (row.region_sido) region_matched++;
+          else region_unmatched++;
           rows.push(row);
           records_added++;
         }
@@ -132,7 +224,20 @@ export async function runIndexer(opts: IndexerOpts): Promise<IndexerSummary> {
 
   await applyStageAndSwap(opts.env.DB, rows);
 
-  return { records_total, records_added, records_skipped, api_calls, error, skip_reasons };
+  return {
+    records_total,
+    records_added,
+    records_skipped,
+    api_calls,
+    error,
+    skip_reasons,
+    detail_called,
+    detail_success,
+    detail_retry,
+    detail_failed,
+    region_matched,
+    region_unmatched
+  };
 }
 
 function getItem(res: unknown): unknown {
@@ -200,5 +305,16 @@ export default {
   async scheduled(_event: ScheduledEvent, env: IndexerEnv): Promise<void> {
     const summary = await runIndexer({ env });
     console.log(JSON.stringify({ kind: 'cases-indexer', summary }));
+    console.log(
+      JSON.stringify({
+        kind: 'cases-indexer-counters',
+        detail_called: summary.detail_called,
+        detail_success: summary.detail_success,
+        detail_retry: summary.detail_retry,
+        detail_failed: summary.detail_failed,
+        region_matched: summary.region_matched,
+        region_unmatched: summary.region_unmatched
+      })
+    );
   }
 };
