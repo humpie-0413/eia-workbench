@@ -1,4 +1,5 @@
 import type { CaseSearchQuery } from '../../lib/schemas/case-search';
+import { sidoCode } from './sido-lut';
 
 const BAND_RANGES: Record<string, [number, number]> = {
   '<10': [0, 10],
@@ -29,8 +30,14 @@ export function buildCaseSearchSql(q: CaseSearchQuery): BuiltQuery {
     }
   }
   if (q.sido && q.sido.length > 0) {
-    where.push(`region_sido IN (${q.sido.map(() => '?').join(',')})`);
-    binds.push(...q.sido);
+    // facet short 라벨 ('강원'/'경북') → KOSTAT code ('51'/'47') 매칭.
+    // 사유: D1 region_sido 컬럼 값 ('강원도') 과 SIDO_LUT.label ('강원특별자치도') 불일치
+    // (sigungu-lut.json 단순화 vs sido-lut 공식 라벨). 코드 매칭은 라벨 drift 면역.
+    const codes = q.sido.map((s) => sidoCode(s)).filter((c): c is string => c != null);
+    if (codes.length > 0) {
+      where.push(`region_sido_code IN (${codes.map(() => '?').join(',')})`);
+      binds.push(...codes);
+    }
   }
   if (q.capacity_band && q.capacity_band.length > 0) {
     const subs = q.capacity_band.map((b) => {

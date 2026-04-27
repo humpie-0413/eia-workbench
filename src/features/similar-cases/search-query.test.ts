@@ -12,13 +12,15 @@ describe('buildCaseSearchSql', () => {
       pageSize: 50
     });
     expect(r.sql).toMatch(/eia_cases_fts MATCH/);
-    expect(r.sql).toMatch(/region_sido IN \(\?,\?\)/);
+    // facet short → KOSTAT code 매칭 (D1 region_sido label drift 면역)
+    expect(r.sql).toMatch(/region_sido_code IN \(\?,\?\)/);
     expect(r.sql).toMatch(/capacity_mw >= \? AND capacity_mw < \?/);
     expect(r.sql).toMatch(/evaluation_year IN \(\?,\?\)/);
     expect(r.sql).toMatch(/ORDER BY evaluation_year DESC/);
     expect(r.sql).toMatch(/LIMIT \? OFFSET \?/);
+    // 강원 → '51', 전남 → '46'
     expect(r.binds).toEqual(
-      expect.arrayContaining(['강원풍력*', '강원', '전남', 10, 50, 2024, 2023, 50, 0])
+      expect.arrayContaining(['강원풍력*', '51', '46', 10, 50, 2024, 2023, 50, 0])
     );
   });
 
@@ -35,11 +37,17 @@ describe('buildCaseSearchSql', () => {
     expect(r.sql).not.toMatch(/LIKE/);
   });
 
-  it('count query has same WHERE shape', () => {
+  it('count query has same WHERE shape (facet short → code)', () => {
     const r = buildCaseSearchSql({ sido: ['강원'], page: 1, pageSize: 50 });
     expect(r.countSql).toMatch(/SELECT COUNT/);
-    expect(r.countSql).toMatch(/region_sido IN/);
-    expect(r.countBinds).toEqual(['onshore_wind', '강원']);
+    expect(r.countSql).toMatch(/region_sido_code IN/);
+    expect(r.countBinds).toEqual(['onshore_wind', '51']);
+  });
+
+  it('unknown sido short → filter 무시 (defensive)', () => {
+    const r = buildCaseSearchSql({ sido: ['unknown_short'], page: 1, pageSize: 50 });
+    expect(r.sql).not.toMatch(/region_sido_code IN/);
+    expect(r.binds).toEqual(['onshore_wind', 50, 0]);
   });
 
   it('always pins industry = onshore_wind', () => {

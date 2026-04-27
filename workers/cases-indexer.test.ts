@@ -166,12 +166,14 @@ describe('cases-indexer (15142987 discussion list)', () => {
     expect(count).toBeLessThanOrEqual(3);
   });
 
-  it('uses 15142987 dscss list endpoint (no draft/strategy paths)', async () => {
+  it('uses 15142987 dscss endpoints (no draft/strategy paths)', async () => {
     const calls: string[] = [];
     vi.stubGlobal(
       'fetch',
       vi.fn().mockImplementation((url: string) => {
         calls.push(url);
+        // detail mock 포함 — list 와 detail 모두 baseListResp 형태로 응답해도 envelope OK.
+        // Phase 0 RED 케이스 (detail 통합) 추가 후 detail 호출이 1회 발생.
         return Promise.resolve(new Response(JSON.stringify(baseListResp), { status: 200 }));
       })
     );
@@ -183,10 +185,143 @@ describe('cases-indexer (15142987 discussion list)', () => {
     });
     expect(calls.length).toBeGreaterThan(0);
     for (const u of calls) {
+      // 15142987 service base path 동일. list 또는 Ing detail 둘 중 하나여야 함.
       expect(u).toMatch(/EnvrnAffcEvlDscssSttusInfoInqireService/);
-      expect(u).toMatch(/getDscssBsnsListInfoInqire/);
+      expect(u).toMatch(/getDscssBsnsListInfoInqire|getDscssSttusDscssIngDetailInfoInqire/);
       expect(u).not.toMatch(/Draft/);
       expect(u).not.toMatch(/Strategy/);
     }
+  });
+});
+
+// describe('cases-indexer (15142987 discussion list)') 아래에 새 describe 추가
+describe('runIndexer — P1 Ing detail integration', () => {
+  function listResp(items: Array<Record<string, unknown>>) {
+    return {
+      response: {
+        header: { resultCode: '00', resultMsg: 'OK' },
+        body: { totalCount: items.length, pageNo: 1, numOfRows: 100, items: { item: items } }
+      }
+    };
+  }
+  function ingDetailResp(items: Array<Record<string, unknown>>) {
+    return {
+      response: {
+        header: { resultCode: '00', resultMsg: 'OK' },
+        body:
+          items.length === 0
+            ? { totalCount: 0, items: '' }
+            : { totalCount: items.length, items: { item: items } }
+      }
+    };
+  }
+  function urlIs(url: string, op: 'list' | 'ingDetail'): boolean {
+    if (op === 'list') return /getDscssBsnsListInfoInqire/.test(url);
+    return /getDscssSttusDscssIngDetailInfoInqire/.test(url);
+  }
+
+  it('Ing detail success → detail_called/success/region_matched 카운트', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation((url: string) => {
+        const body = urlIs(url, 'list')
+          ? listResp([{ eiaCd: 'DG2009L001', bizNm: '영양풍력발전단지', eiaSeq: 1 }])
+          : ingDetailResp([
+              { stateNm: '1차 협의', resReplyDt: '2024-01-01', applyDt: '2024-01-01' }
+            ]);
+        return Promise.resolve(new Response(JSON.stringify(body), { status: 200 }));
+      })
+    );
+    const db = makeD1();
+    const summary = await runIndexer({
+      env: { SERVICE_KEY: 'k', DB: db as never },
+      maxApiCalls: 8000,
+      maxPagesPerQuery: 1
+    });
+    expect(summary.detail_called).toBe(1);
+    expect(summary.detail_success).toBe(1);
+    expect(summary.region_matched).toBe(1);
+  });
+
+  it('Ing detail HTTP fail 1회 → retry → success', async () => {
+    let detailAttempt = 0;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation((url: string) => {
+        if (urlIs(url, 'list')) {
+          return Promise.resolve(
+            new Response(JSON.stringify(listResp([{ eiaCd: 'X-1', bizNm: '영양풍력' }])), {
+              status: 200
+            })
+          );
+        }
+        detailAttempt++;
+        if (detailAttempt === 1) {
+          return Promise.resolve(new Response('boom', { status: 500 }));
+        }
+        return Promise.resolve(
+          new Response(
+            JSON.stringify(
+              ingDetailResp([{ stateNm: '협의', resReplyDt: '2024-01-01', applyDt: '2024-01-01' }])
+            ),
+            { status: 200 }
+          )
+        );
+      })
+    );
+    const db = makeD1();
+    const summary = await runIndexer({
+      env: { SERVICE_KEY: 'k', DB: db as never },
+      maxApiCalls: 8000,
+      maxPagesPerQuery: 1
+    });
+    expect(summary.detail_retry).toBe(1);
+    expect(summary.detail_success).toBe(1);
+  });
+
+  it('Ing detail 모두 fail (retry 후도) → list-only fallback (no error)', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation((url: string) => {
+        if (urlIs(url, 'list')) {
+          return Promise.resolve(
+            new Response(JSON.stringify(listResp([{ eiaCd: 'X-1', bizNm: '영양풍력' }])), {
+              status: 200
+            })
+          );
+        }
+        return Promise.resolve(new Response('boom', { status: 500 }));
+      })
+    );
+    const db = makeD1();
+    const summary = await runIndexer({
+      env: { SERVICE_KEY: 'k', DB: db as never },
+      maxApiCalls: 8000,
+      maxPagesPerQuery: 1
+    });
+    expect(summary.detail_failed).toBe(1);
+    expect(summary.error).toBeNull();
+    expect(summary.records_added).toBe(1); // list-only fallback 적재
+  });
+
+  it('Ing detail empty items (totalCount=0) → list-only fallback (정상 흐름)', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation((url: string) => {
+        const body = urlIs(url, 'list')
+          ? listResp([{ eiaCd: 'X-1', bizNm: '영양풍력' }])
+          : ingDetailResp([]);
+        return Promise.resolve(new Response(JSON.stringify(body), { status: 200 }));
+      })
+    );
+    const db = makeD1();
+    const summary = await runIndexer({
+      env: { SERVICE_KEY: 'k', DB: db as never },
+      maxApiCalls: 8000,
+      maxPagesPerQuery: 1
+    });
+    expect(summary.detail_called).toBe(1);
+    expect(summary.detail_success).toBe(1); // empty items 도 success 로 카운트 (정상 흐름)
+    expect(summary.records_added).toBe(1);
   });
 });

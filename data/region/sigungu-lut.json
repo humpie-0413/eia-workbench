@@ -1,0 +1,8 @@
+{
+  "영양": { "sido": "경상북도", "sidoCode": "47", "sigungu": "영양군" },
+  "강릉": { "sido": "강원도",   "sidoCode": "51", "sigungu": "강릉시" },
+  "의성": { "sido": "경상북도", "sidoCode": "47", "sigungu": "의성군" },
+  "청송": { "sido": "경상북도", "sidoCode": "47", "sigungu": "청송군" },
+  "삼척": { "sido": "강원도",   "sidoCode": "51", "sigungu": "삼척시" },
+  "양양": { "sido": "강원도",   "sidoCode": "51", "sigungu": "양양군" }
+}

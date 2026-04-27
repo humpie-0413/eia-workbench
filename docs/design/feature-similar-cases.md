@@ -3,6 +3,7 @@
 > Office Hours 8문항 (Q1–Q8) + 추가 노트 3건 반영. 사용자가 모든 추천안을 채택 (2026-04-25).
 > **2026-04-25 보정**: 사용자 직접 검증 결과 데이터셋 ID 15000800 은 GIS 좌표 기반 측정 API 로 확인되어 부적합. **15142998 환경영향평가 초안 공람정보** 로 교체. §2 / §4 / §6 / §10 / §12 패치.
 > **2026-04-26 보정**: 부트스트랩 실행 결과 15142998 은 현재 공람 진행 중인 사업만 노출 (총 15건 / 풍력 0건). 인덱싱 가치 부재. **15142987 환경영향평가 협의현황** 으로 재교체 (총 7,434건 / 풍력 후보 ~44건). list-only 적재로 단순화하고 detail 통합은 후속 작업으로 분리. §2 / §4 / §6 / §10 / §12 패치, migration 0004 추가.
+> **2026-04-26 P1 보정**: list-only 운영 후 후속으로 분리했던 detail API 통합을 본 patch 로 반영. Office Hours Q1~Q8 결정 (2026-04-26): Ing detail (`getDscssSttusDscssIngDetailInfoInqire`) 단독 채택, evaluation_stage 매핑 (stateNm 패턴), region_sido fallback (biz_nm regex + sigungu LUT — 두 detail endpoint 모두 `eiaAddrTxt` 부재 확정), detail 실패 시 retry 1 + list-only fallback. migration 불요. §2 / §4.3 / 신규 §4.4 / §6 / §10.4 / §11 / §12 patch.
 > 다음 단계: 본 spec 사용자 검토 → 승인 → `writing-plans`로 `docs/plans/feature-similar-cases.md` 작성.
 
 ## 1. 목적
@@ -22,14 +23,16 @@
 - 대상 업종: **육상풍력 (onshore_wind)** 1개. 다른 업종은 v2.
 - 인덱스 데이터셋: data.go.kr **`15142987` 환경영향평가 협의현황** 단일 (2026-04-26 교체).
   - Base URL: `https://apis.data.go.kr/1480523/EnvrnAffcEvlDscssSttusInfoInqireService`
-  - Operation 1종 사용 (v0):
+  - Operation 2종 사용 (v0 list + P1 detail, 2026-04-26 P1 보정):
     - `getDscssBsnsListInfoInqire` (협의대상 사업 목록, `searchText` 지원)
+    - `getDscssSttusDscssIngDetailInfoInqire` (협의 진행 상세 — 풍력 후보 행에 한해 호출, `eiaCd` 키)
   - 풍력 식별 필터: list 응답에 `bizGubunCd` 가 없으므로 `bizNm` 정규식만 사용 (`/풍력/` AND NOT `/해상\s*풍력/`).
   - 일 호출 한도: 개발계정 **10,000회/일**.
-  - 부트스트랩 추정: total 7,434건 / `searchText='풍력'|'해상풍력'|'육상풍력'` 페이지네이션 ≈ 80–100 호출.
+  - 부트스트랩 추정: list ≈ 80–100 호출 + Ing detail onshore 후보 N건(현 운영 N=10, 해상풍력 ~68 skip, retry ≤1 포함) → 합계 **≤ 170 호출/sync** (N≤500 까지 안전 마진).
+- 사용 안 함 detail endpoint (2026-04-26 P1 결정):
+  - `getDscssSttusDscssOpinionDetailInfoInqire` (의견 detail) — 응답에 `eiaAddrTxt` 부재이므로 region 보강 가치 없음. 또한 `ccilMemEmail`/`ccilMemNm` (CCM 담당자 PII) 포함되므로 §10.4 재호스팅 가드 위반 위험. 호출 자체 회피.
 - 기존 후보 (rollback 보존, v0에서 인덱싱 안 함):
   - `15142998` 환경영향평가 초안 공람정보 — 현재 공람 진행 중 사업만 노출 (총 15건). 풍력 0건이라 인덱싱 가치 부재. zod 스키마(`draftListItemSchema`/`strategyDraftListItemSchema`)와 endpoint 빌더는 코드 보존.
-- detail API 통합: list 적재 후 별도 후속 작업. operation 후보 `getDscssBsnsDetailInfoInqire` 등은 별도 OH/spec 후 도입.
 
 ## 3. 핵심 사용자 여정
 
@@ -172,20 +175,116 @@ searchText ∈ ['풍력', '해상풍력', '육상풍력']
 | derived 컬럼 | 출처 | 변환 규칙 | 실패 시 |
 |---|---|---|---|
 | `industry` | `bizNm` (regex only) | `/풍력/.test(bizNm)` AND NOT `/해상\s*풍력/.test(bizNm)` → `'onshore_wind'`. 15142987 list 응답에 `bizGubunCd` 가 부재하므로 regex 단독 식별 (2026-04-26). | **skip** (행 미적재) |
-| `region_sido` | `eiaAddrTxt` | 정규식 `^(서울|부산|대구|인천|광주|대전|울산|세종|경기|강원|충북|충남|전북|전남|경북|경남|제주)(특별시\|광역시\|특별자치시\|도\|특별자치도)?` 첫 매칭. 17개 시·도 LUT (`src/lib/region/sido.ts`) 재사용. | NULL |
-| `region_sido_code` | `region_sido` | 17개 시·도 → KOSTAT 2자리 코드 매핑 LUT (project-shell 의 `kostat-code.ts` 패턴). | NULL |
-| `region_sigungu` | `eiaAddrTxt` | `region_sido` 이후 토큰에서 `/(\S+?(?:시|군|구))/` 첫 매칭. 시·군·구 LUT 검증은 v1 (오탐 허용). | NULL |
+| `region_sido` | `bizNm` (regex fallback, 2026-04-26 P1) | 15142987 list/Ing/Opinion detail 응답 모두 `eiaAddrTxt` 부재 (사용자 raw 검증). 시·군·구 토큰을 `bizNm` 에서 추출 → `data/region/sigungu-lut.json` 으로 시·도 역매핑. 우선순위: ① 광역시 토큰(서울/부산/대구/인천/광주/대전/울산/세종) → 광역시 즉시 ② 시·군·구 토큰 LUT 첫 매치 → `sido` ③ 둘 다 부재 → NULL. 알고리즘 §4.4. | NULL |
+| `region_sido_code` | `region_sido` | 17개 시·도 → KOSTAT 2자리 코드 매핑 LUT (project-shell 의 `kostat-code.ts` 패턴). LUT entry 의 `sidoCode` 동시 적재. | NULL |
+| `region_sigungu` | `bizNm` (LUT 매칭, 2026-04-26 P1) | `bizNm` 의 `(?<![가-힣])(\S+?(?:시|군|구))(?![가-힣])` 정규식 토큰 중 LUT 등록된 첫 매치 (어두/어말 경계로 `광역시`·`자치구` 잡음 토큰 제외). LUT 미매칭 → NULL. 알고리즘 §4.4. | NULL |
 | `capacity_mw` | (전략) `bizSize`·`bizSizeDan` / (일반) `bizNm` | 우선순위 ① `bizSizeDan='MW' or 'kW' or '㎾'`이면 `bizSize` 숫자 추출 후 단위 변환 (kW→MW: ÷1000) ② `bizNm` 정규식 `/(\d+(?:\.\d+)?)\s*(MW|㎿)/i` 첫 매칭 ③ 둘 다 실패 → NULL | NULL (검색 결과에는 노출, 규모 facet 에서는 제외) |
 | `area_ha` | (전략) `bizSize`·`bizSizeDan` | `bizSizeDan` 분기: `'ha'` 그대로 / `'㎡'` ÷ 10000 / `'㎢'` × 100 / 그 외(`MW`, `kW` 등) → NULL. 일반 operation 응답에는 `bizSize` 가 없으므로 NULL. | NULL |
 | `evaluation_year` | `stepChangeDt` (15142987) | 첫 4자리 정수 (점·대시 구분자 허용). `< 2000` 또는 `> 현재연도+1` 이면 NULL. 15142987 list 응답에는 `drfopStartDt`/`drfopTmdt` 가 없고 `stepChangeDt='YYYY.MM.DD'` 만 사용 가능. | NULL |
-| `evaluation_stage` | (15142987 list) | 협의현황 list 응답만으로는 본안/전략 식별 불가 → `'unknown'` 적재. detail 통합 후속 작업에서 `'본안'/'전략'` 구분 도입 예정. | (현재는 모두 'unknown') |
-| `source_payload` | list+detail merge | list 응답 item + detail 응답 item 의 화이트리스트 필드 (§4.1 컬럼 + 협의 메타) JSON.stringify. **본문 텍스트 필드는 화이트리스트 미포함** (§2-4, §10.4 재호스팅 가드). | (불가, 적재 거부) |
+| `evaluation_stage` | Ing detail `items[].stateNm` (정렬 후 first, 2026-04-26 P1) | 매핑 우선순위: ① `stateNm.includes('전략')` → `'전략'` ② `stateNm.includes('본안')` OR `stateNm === '협의'` OR `stateNm.includes('변경협의')` → `'본안'` ③ 그 외 (예: `'소규모'`, `'재협의'`, `'재의견'`) → `'unknown'`. 정렬 키: `resReplyDt DESC` → `applyDt DESC` → API order. detail 호출 실패/items 빈 응답 → `'unknown'` (CHECK 통과). | (`'unknown'` 적재) |
+| `source_payload` | list + Ing detail merge (2026-04-26 P1) | list item 화이트리스트 (`eiaCd, eiaSeq, bizNm, ccilOrganNm, stepChangeDt, rnum`) + Ing detail 화이트리스트 (`stateNm, resReplyDt, applyDt` 만, items 정렬 후 상위 3건까지) + region 매칭 결과 (`matched_token, matched_sido, matched_sigungu`) JSON.stringify. **본문 텍스트·PII (CCM 담당자명/이메일) 필드는 화이트리스트 미포함** (§2-4, §10.4 재호스팅 가드). | (불가, 적재 거부) |
 | `eia_cd` | `eiaCd` | 그대로 (`PRIMARY KEY`). list 응답에서 누락된 행은 적재 거부. | (skip) |
 
-특이 케이스:
-- 같은 `eia_cd` 가 일반 + 전략 양쪽 list 에 등장 → `evaluation_stage` 우선순위 = **전략**. 인덱서 실행 순서는 **(1) 일반 stage list → (2) 일반 detail → (3) 전략 stage list → (4) 전략 detail → (5) merge (전략 우선 덮어쓰기) → (6) 단일 트랜잭션 swap**. (5) 단계에서 `eia_cd` 충돌은 전략 행이 일반 행을 덮어쓴다 (`INSERT OR REPLACE`).
-- `bizSize` 가 `'30MW, 부지 50ha'` 처럼 복합 표기인 경우 → `capacity_mw` 정규식 + `area_ha` 정규식 각각 적용 (둘 다 채움).
-- `eiaAddrTxt` 가 다중 시·도 (`'강원 평창군 외 1'`) → `region_sido='강원'` 만 적재. v1 에서 다중 지역 컬럼 검토.
+특이 케이스 (2026-04-26 P1 갱신):
+- 15142987 list 응답에는 본안/전략 구분 없음. evaluation_stage 는 Ing detail `stateNm` 패턴 매핑으로 결정 (§4.3 evaluation_stage 행).
+- `bizNm` 에 `'30MW'` 형태 용량 토큰이 포함된 경우 `capacity_mw` 추출 가능. list-only 적재이므로 `bizSize` 미가용 → `bizNm` 정규식만 사용.
+- `bizNm` 에 다중 시·군·구 토큰 (`'영월 평창 풍력'`) → LUT 첫 매치만 적재. 후속 토큰 무시.
+- detail 호출 실패 (HTTP 에러, zod 실패, items 빈 응답) → list-only fallback. evaluation_stage='unknown', detail 화이트리스트 필드 부재. `eia_cases_sync` `detail_failed` 1 증가, `error` 미기록 (정상 fallback 으로 간주).
+
+### 4.4 region 매핑 알고리즘 — biz_nm regex + sigungu LUT (P1 신설)
+
+#### 4.4.1 배경 (왜 biz_nm fallback 인가)
+
+15142987 list / Ing detail / Opinion detail 응답 모두 `eiaAddrTxt` 부재 (사용자 raw payload 검증, 2026-04-26 P1 OH Q1). detail endpoint 추가 호출로도 주소 미수신 → 사업명 자체에서 시·군·구 토큰 추출이 유일한 region 보강 경로. 본 알고리즘은 detail 호출 결과와 무관하게 list 행 모두에 적용.
+
+#### 4.4.2 토큰 추출
+
+```
+const SIGUNGU_TOKEN = /(?<![가-힣])(\S+?(?:시|군|구))(?![가-힣])/g;
+```
+
+- 한글 어두/어말 경계 lookbehind/lookahead 로 `광역시`·`자치구`·`시민` 등 잡음 분해 차단.
+- `bizNm` 전체에 `matchAll` 적용 → 토큰 배열 (등장 순서 보존).
+- 광역시 토큰 (서울/부산/대구/인천/광주/대전/울산/세종) 은 4.4.4 우선순위 ①에서 별도 분기.
+
+> **운영 데이터 보강 (2026-04-27)**: 운영 풍력 적재 10건 분석 결과 사업명에 `시`·`군`·`구` 접미사가 포함된 비율은 0% (`docs/cases-2026-04-26.md` 참조). 토큰 정규식만으로는 100% NULL → 50% DoD 불가능. 4.4.4 step 2.5 어근 substring fallback 으로 해결.
+
+#### 4.4.3 LUT 구조 (`data/region/sigungu-lut.json`)
+
+```json
+{
+  "영양": { "sido": "경상북도", "sidoCode": "47", "sigungu": "영양군" },
+  "강릉": { "sido": "강원도",   "sidoCode": "42", "sigungu": "강릉시" },
+  "의성": { "sido": "경상북도", "sidoCode": "47", "sigungu": "의성군" },
+  "청송": { "sido": "경상북도", "sidoCode": "47", "sigungu": "청송군" },
+  "삼척": { "sido": "강원도",   "sidoCode": "42", "sigungu": "삼척시" },
+  "양양": { "sido": "강원도",   "sidoCode": "42", "sigungu": "양양군" }
+}
+```
+
+- 키: `시`·`군`·`구` 접미사 **제거한** 한글 어근 (`'영양군'` → `'영양'`).
+- 값: KOSTAT 시·도 코드 + 정규화된 `sigungu` 라벨.
+- v0 1차 import 필수 6개 (운영 적재 10건 매칭): 영양/강릉/의성/청송/삼척/양양.
+- 19개 entry 목표 (v0 풍력 후보 추정 ~44건의 50% 커버). 누락 시군구는 NULL 적재 후 운영 로그에서 식별 → LUT 추가.
+
+> **Phase 1 주의 (sidoCode 잠정값)**: 위 6개 entry 의 `sidoCode` 값은 **잠정**. KOSTAT 행정구역 코드 manual 확인 후 확정 필수. 특히:
+> - 강원도: `'42'` (전환 전) vs `'51'` (강원특별자치도 전환 후, 2023-06 시행) — 운영 시점 코드 검증 필수.
+> - 경상북도: `'47'` 검증 필수.
+> - 6개 entry 각각 출처 URL (KOSTAT 코드표 또는 통계청 행정구역 분류) 또는 코드 출처 표기.
+> - Phase 1 GREEN 전에 LUT 검증 단위 테스트 1건 추가 (예: `'영양'.sidoCode === '47'`).
+
+#### 4.4.4 매핑 우선순위
+
+```
+function deriveRegion(bizNm: string, lut: SigunguLut): RegionResult {
+  // 1. 광역시 토큰 우선
+  const METRO = ['서울','부산','대구','인천','광주','대전','울산','세종'];
+  for (const metro of METRO) {
+    if (bizNm.includes(metro)) {
+      return { sido: metro, sidoCode: METRO_CODE[metro], sigungu: null, matched_token: metro };
+    }
+  }
+  // 2. 시·군·구 LUT 첫 매치 (suffix 포함된 토큰)
+  const tokens = [...bizNm.matchAll(SIGUNGU_TOKEN)].map(m => m[1]);
+  for (const token of tokens) {
+    const stem = token.replace(/(시|군|구)$/, '');
+    if (lut[stem]) {
+      return { sido: lut[stem].sido, sidoCode: lut[stem].sidoCode, sigungu: lut[stem].sigungu, matched_token: token };
+    }
+  }
+  // 2.5. (NEW, P1 보강) LUT 어근 substring 매치 — suffix 없는 어근만 있는 bizNm 대응
+  //      운영 풍력 10건은 모두 어근 only ('영양풍력', '강릉 안인풍력' 등). 4.4.2 토큰화로는 0% 매칭.
+  for (const stem of Object.keys(lut)) {
+    if (bizNm.includes(stem)) {
+      return { sido: lut[stem].sido, sidoCode: lut[stem].sidoCode, sigungu: lut[stem].sigungu, matched_token: stem };
+    }
+  }
+  // 3. 매칭 실패
+  return { sido: null, sidoCode: null, sigungu: null, matched_token: null };
+}
+```
+
+- 광역시 토큰 존재 시 시·군·구 LUT 보다 우선 (광역시 안의 자치구 분리는 v1).
+- 광역시 토큰 부재 시 시·군·구 LUT 첫 매치. LUT 미등록 토큰은 무시.
+- step 2 (suffix 토큰 매치) 실패 시 step 2.5 어근 substring 매치로 fallback. `Object.keys(lut)` 삽입 순서 = LUT JSON 정의 순서 (영양 → 강릉 → 의성 → 청송 → 삼척 → 양양).
+
+#### 4.4.5 source_payload 기록
+
+`derivedRegion.matched_token` 을 `source_payload` 에 함께 직렬화하여 운영 디버깅 시 매칭 근거 추적 가능. (§10.4 화이트리스트 정책 부합 — bizNm 자체 한글 토큰은 본문 텍스트가 아닌 메타데이터.)
+
+#### 4.4.6 50% DoD (P1 부트스트랩 후)
+
+- 운영 적재 N 건 중 `region_sido IS NOT NULL` 비율 ≥ **50%**.
+- 미달 시 운영 로그에서 LUT 미매칭 토큰 top-N 추출 → `data/region/sigungu-lut.json` 추가 → 재인덱싱.
+- 100% 달성은 v1 목표.
+
+#### 4.4.7 v1 추적 — LUT 어근 충돌 검증
+
+step 2.5 의 `Object.keys(lut)` 순회는 LUT JSON 삽입 순서에 의존한다. P1 LUT 6개 어근 (영양/강릉/의성/청송/삼척/양양) 은 서로 substring 으로 포함되지 않아 충돌 없음. v1 에서 LUT 19+ 로 확장 시:
+
+- LUT 추가 전 충돌 검증 단위 테스트 추가 — 각 새 어근이 기존 어근의 substring 인지 / 기존 어근에 새 어근이 포함되는지 검사.
+- 충돌 발견 시: ① 더 긴 어근 우선 정렬 (`'영양읍'` vs `'영양'` → 긴 것 먼저) ② 또는 LUT 데이터에 명시적 우선순위 필드 추가.
+- v1 LUT 임포트 PR 의 DoD 에 본 검증 절차 1줄 명시 필수.
 
 ## 5. 화면 구조
 
@@ -256,12 +355,14 @@ searchText ∈ ['풍력', '해상풍력', '육상풍력']
   1. 환경영향평가 신규 협의 빈도가 일 단위가 아님.
   2. **10,000회/일** 한도 안전 마진 확보 (실측 전 추정).
   3. 첫 부트스트랩은 **수동 1회** (Wrangler `--var BOOTSTRAP=true` 식 트리거). 정기 cron은 그 후 활성화.
-- 호출량 모델 (cron 1회 sync 기준, 2026-04-26 갱신):
-  - list `getDscssBsnsListInfoInqire` × `searchText∈['풍력','해상풍력','육상풍력']` × 페이지(`numOfRows=100`, 부트스트랩 ≤ 50p) = 3 × 50 = **≤ 150 호출**
-  - detail 통합은 후속 commit (현재 list-only).
-  - 부트스트랩 실측 (15142987 total 7,434, 풍력 후보 ~44): **≤ 100 호출/sync** 예상.
-  - 주간 신규분만: ≤ 30 호출/주 추정. 한도(10,000/일)의 0.3% 미만.
-- 호출 한도 가드: 인덱서가 `api_calls > 8000` 도달 시 즉시 중단·`error`에 기록·다음 주 재개. (실측 호출량 ≤ 150 으로 큰 마진.)
+- 호출량 모델 (cron 1회 sync 기준, 2026-04-26 P1 갱신):
+  - list `getDscssBsnsListInfoInqire` × `searchText∈['풍력','해상풍력','육상풍력']` × 페이지(`numOfRows=100`, 부트스트랩 ≤ 50p) = 3 × 50 = **≤ 150 호출**.
+  - Ing detail `getDscssSttusDscssIngDetailInfoInqire` × **onshore** 후보 N건 (현 운영 N=10; 해상풍력 ~68건은 wind_offshore filter 로 skip) × retry ≤1 → **≤ 20 호출/sync**.
+  - 합계: **≤ 170 호출/sync** (한도 10,000/일의 1.7%).
+  - 부트스트랩 실측 추정 (15142987 total 7,434, onshore 풍력 ~10): **≤ 170 호출/sync**.
+  - N 변동 시 자동 스케일링 — N ≤ 500 까지 안전 마진 유지 (한도의 5% 이내).
+  - 주간 신규분만: ≤ 30 호출/주 추정 (대부분 list, detail 거의 없음). 한도의 0.3% 미만.
+- 호출 한도 가드: 인덱서가 `api_calls > 8000` 도달 시 즉시 중단·`error`에 기록·다음 주 재개. (실측 호출량 ≤ 170 으로 큰 마진.)
 - 검색 API: D1 `prepare().bind().all()`. FTS5 + LIKE fallback (§4.2).
 - 클라이언트 상태: URL 쿼리 단일 소스 (facet/검색어/페이지). `nanostores` 미사용.
 - Markdown export: 클라이언트만으로 생성 (기존 `src/features/scoping/markdown-export.ts` 패턴 재사용).
@@ -270,7 +371,7 @@ searchText ∈ ['풍력', '해상풍력', '육상풍력']
 
 ## 7. Out of Scope (v0에서 하지 않는 것)
 
-- 다른 EIA 데이터셋 인덱싱 (`15142987` 협의현황, `15142988` 본안 공람 등) — v1.
+- 다른 EIA 데이터셋 인덱싱 (예: `15142988` 본안 공람 등) — v1. (`15142987` 협의현황은 v0 본 spec 데이터셋, P1 patch 로 detail 통합 완료.)
 - 카테고리 A 환경현황 14종 — v1.
 - 지도 뷰 (시·도 마커) — v1.
 - 관련도순 정렬 (BM25) — v1.
@@ -323,8 +424,9 @@ searchText ∈ ['풍력', '해상풍력', '육상풍력']
 
 - 호출 한도 가드: 1회 sync `api_calls > 8000` 도달 시 즉시 중단·`error`에 기록·다음 주 재개 (한도 10,000/일의 80% 컷).
 - 실패 시 인덱스 손상 방지: 새 데이터를 stage 테이블 (`eia_cases_staging`)에 적재. detail 호출 완료 + derived 컬럼 변환 검증 통과 후 단일 트랜잭션으로 `eia_cases` 와 swap (rename). list 단계 실패 시 stage 폐기, 운영 인덱스 무영향.
-- 재호스팅 가드: `source_payload` 는 **§4.3 화이트리스트 필드만** JSON.stringify. API 응답에 본문 텍스트 필드(예: 공람 본문, 협의의견 전문)가 포함돼 들어오면 인덱서가 (a) alarm 로그 (b) 해당 필드 drop (c) `records_skipped` 증가 시키고 진행 — spec 위반 자동 차단.
-- detail 호출 정책: list 응답이 풍력 candidate 으로 식별된 행만 detail 호출 (전체 list × detail 회피). detail 응답에 `eiaCd` 누락 또는 list 와 불일치 시 skip.
+- 재호스팅 가드: `source_payload` 는 **§4.3 화이트리스트 필드만** JSON.stringify. API 응답에 본문 텍스트 필드 또는 PII 필드 (CCM 담당자명/이메일 등) 포함 시 인덱서가 (a) alarm 로그 (b) 해당 필드 drop (c) `records_skipped` 증가 시키고 진행. **Opinion detail endpoint 자체를 호출 안 함** (§2 사용 안 함 detail endpoint 정책).
+- detail 호출 정책 (P1, 2026-04-26): list 에서 풍력 candidate 식별 행만 Ing detail (`getDscssSttusDscssIngDetailInfoInqire`) 호출. detail 응답 `eiaCd` 누락/불일치 → 해당 detail 폐기 (list-only fallback). envelope `header.resultCode !== '00'` 또는 zod 실패 → **retry 1회 후 list-only fallback**. items 빈 응답 (`totalCount=0`) → list-only fallback (정상 흐름, error 미기록).
+- 카운터 (`eia_cases_sync` + console.log): `detail_called`, `detail_success`, `detail_retry`, `detail_failed`, `region_matched`, `region_unmatched`. 부트스트랩/주간 sync 동일 처리 (분기 코드 회피).
 
 ### 10.5 EIASS deep-link URL 형식
 
@@ -336,11 +438,72 @@ searchText ∈ ['풍력', '해상풍력', '육상풍력']
 
 ## 11. 운영 가드
 
-- 인덱스 부트스트랩 1회 호출량(현 추정 ≤ 150, 2026-04-26 갱신) 실측 후 §6 추정값 갱신 + cron 주기 재평가. 일 1회로 변경 시 `docs/design/feature-similar-cases.md` 업데이트 + 별도 commit.
+- 인덱스 부트스트랩 1회 호출량(현 추정 ≤ 170, 2026-04-26 P1 갱신: list ≤150 + Ing detail ≤20, onshore N=10 기준) 실측 후 §6 추정값 갱신 + cron 주기 재평가. 일 1회로 변경 시 `docs/design/feature-similar-cases.md` 업데이트 + 별도 commit.
 - 인덱스 행 수가 5000건을 넘으면 LIKE fallback 비용 측정 — 트라이그램 도입을 v1로 검토.
 - D1 마이그레이션 0003 + 0004 는 **운영 dry-run 후 적용**. project-shell의 0001/scoping의 0002 패턴 그대로. 0004 는 `eia_cases` DROP & CREATE 이므로 (a) 적용 시점 운영 행수 0 인지 확인 후 (b) 인덱서 부트스트랩 재실행 필요.
 - 데이터셋 ID 변경 사실 (`15000800` → `15142998` → `15142987`) 은 §12 결정 로그 + ADR 0001 보강(별도 commit) 으로 추적.
-- detail API 통합 (15142987 detail operation 식별·zod·transform 확장) 은 별도 hotfix/commit 으로 분리. 현재 list-only 적재 → 다수 컬럼(eia_addr_txt, drfop_*, biz_size 등) NULL.
+- ~~detail API 통합 (15142987 detail operation 식별·zod·transform 확장) 은 별도 hotfix/commit 으로 분리.~~ → **2026-04-26 P1 patch 로 통합 완료** (Ing detail 호출 + biz_nm regex region fallback). list-only 컬럼 (eia_addr_txt, drfop_*, biz_size 등) 은 spec 상 미사용 (15142987 detail 응답에도 부재).
+
+### 11.1 P1 detail 통합 배포 절차 (2026-04-26 P1)
+
+1. **Phase 0** — TDD RED 5 file 1:1 unit tests commit. `npm test` 명백한 실패 확인.
+2. **Phase 1** — `data/region/sigungu-lut.json` 19 entry import + KOSTAT 코드 확정 + region-parser GREEN. unit tests pass.
+3. **Phase 2** — `transform.ts` Ing detail merge + region merge GREEN. transform unit tests pass.
+4. **Phase 3** — cases-indexer Ing detail call 통합 + retry/fallback. 부트스트랩 dry-run (`BOOTSTRAP=true`) 로컬 1회.
+5. **Phase 4** — 운영 D1 staging swap. 트리거 명령:
+   - 1번 터미널: `npx wrangler dev --config workers/cases-indexer.wrangler.toml --remote --test-scheduled`
+   - 2번 터미널: `curl 'http://127.0.0.1:8787/__scheduled?cron=0+18+*+*+0'`
+   - 1번 터미널 wrangler dev summary 로그 (records_added / skip_reasons / detail_*) 캡처
+   - §11.3 DoD SQL 5건 통과 확인 후 Phase 5a 진입.
+6. **Phase 5a** — 운영 검증 (UI 4건 + DoD SQL 5건 + console.log 카운터). **미커밋**.
+7. **Phase 5b** — 검증 통과 후 handover doc 갱신 (`2026-04-26-similar-cases-deployed.md` → P1 배포 결과 추가) + commit.
+
+### 11.2 P1 DoD (Definition of Done)
+
+- `evaluation_stage`: CHECK 통과 (`'본안'`/`'전략'`/`'unknown'` 모두 valid — 'unknown' 도 정상 적재). 운영 품질 임계: Ing detail 호출 성공률 = `detail_success / detail_called` ≥ **80%** (호출 자체의 가용성 임계, mapping 결과와 별개).
+- `region_sido`: NULL 비율 ≤ **50%** (P1 임계). **분모: 운영 적재 행 전체 (industry='onshore_wind' 통과한 행)**. 운영 10건 기준 추정 7/10 매칭 → NULL 30% → 임계 통과. 미달 시 §11.5 재인덱싱 트리거 절차 발동.
+- `region_sido_code`: `region_sido` not NULL 인 행은 모두 not NULL (LUT 일관성).
+- `source_payload`: PII 필드 (`ccilMemEmail`, `ccilMemNm`) grep **0 결과** (BLOCKING). 본문 텍스트 필드 grep 0 결과. **검증 timing: Phase 5a §11.3 DoD SQL 4번째 query 실행 시 동시 검증** (사용자 SQL 1회 실행으로 cover). grep 결과 > 0 발견 시 인덱서 즉시 stop + staging 폐기 + spec patch 재논의.
+- detail call 카운터: `detail_called >= onshore_후보_수 × 0.9` (90% 이상 호출 시도, retry 포함).
+
+### 11.3 P1 DoD SQL (사용자가 직접 실행할 명령, handover 에 추가 예정)
+
+```sql
+-- 분포 (stage / region_sido / NULL count)
+SELECT evaluation_stage, COUNT(*) AS n FROM eia_cases GROUP BY evaluation_stage;
+SELECT region_sido, COUNT(*) AS n FROM eia_cases GROUP BY region_sido ORDER BY n DESC;
+SELECT
+  SUM(CASE WHEN evaluation_stage = 'unknown' THEN 1 ELSE 0 END) AS stage_unknown,
+  SUM(CASE WHEN region_sido IS NULL THEN 1 ELSE 0 END) AS sido_null,
+  COUNT(*) AS total
+FROM eia_cases;
+-- PII 누출 검증
+SELECT COUNT(*) FROM eia_cases WHERE source_payload LIKE '%ccilMemEmail%' OR source_payload LIKE '%ccilMemNm%';
+-- 스팟 체크 10건
+SELECT eia_cd, biz_nm, region_sido, region_sigungu, evaluation_stage FROM eia_cases LIMIT 10;
+```
+
+### 11.4 UI 검증 4건 (Phase 5a)
+
+1. `/cases` 첫 진입: 카드에 `'경상북도 영양군'` 등 region 라벨 표시.
+2. 시·도 facet '강원도' 체크 → 강릉/삼척/양양 사례만 노출.
+3. 카드 → EIASS deep-link 클릭 → 새 탭 정상 이동.
+4. evaluation_stage 배지 (`'본안'`/`'전략'`/`'unknown'`) 카드 우상단에 표시.
+
+### 11.5 재인덱싱 트리거 절차 (region_sido 50% DoD 미달 시)
+
+DoD §11.2 region_sido NULL 비율 > 50% 인 경우:
+
+1. 운영 D1 에서 NULL region 행의 `bizNm` 추출:
+   ```sql
+   SELECT eia_cd, biz_nm FROM eia_cases WHERE region_sido IS NULL ORDER BY eia_cd;
+   ```
+2. `bizNm` 에서 시·군·구 토큰 수동 추출 (예: `'완도해상풍력'` → `'완도'`).
+3. `data/region/sigungu-lut.json` 에 entry 추가 (sidoCode 검증 포함).
+4. region-parser unit test 1건 추가 (TDD RED → GREEN).
+5. 운영 D1 staging swap 재실행 (§11.1 Phase 4 절차 그대로).
+6. §11.2 region_sido NULL 비율 재측정 → 50% 통과 시 종료, 미달 시 1번부터 반복.
+7. 모든 단계는 별도 commit (LUT 추가 + test 추가 + 재인덱싱 결과 handover 갱신).
 
 ## 12. 결정 로그 (Office Hours 답변 요약)
 
@@ -360,5 +523,23 @@ searchText ∈ ['풍력', '해상풍력', '육상풍력']
 - Q5 cron 주기: **주 1회 월요일 03:00 KST** (본 spec에서 결정).
 - Q8 v0 정렬: **최신순 1개만**. 관련도순(BM25)은 v1.
 - **데이터셋 ID 정정 (2026-04-25)**: 초기 spec 의 `15000800` 은 실제로 GIS 좌표 기반 환경 측정 API. 사례 검색용 정답은 `15142998` (환경영향평가 초안 공람정보). 사용자 직접 검증으로 확정. 일 한도도 **1,000 → 10,000** 으로 정정.
-- **데이터셋 재교체 (2026-04-26)**: 부트스트랩 1차 실행 결과 `15142998` 은 현재 공람 진행 사업만 노출 (총 15건, 풍력 0건). 인덱싱 가치 부재 확인 후 `15142987` (환경영향평가 협의현황, 7,434건) 으로 재교체. 응답 shape 변경 (bizGubunCd/drfopTmdt/eiaAddrTxt 등 부재) 에 따라 (a) zod 스키마 신규(`dscssBsnsListItemSchema`), (b) wind-filter regex-only, (c) transform list-only + `evaluation_stage='unknown'`, (d) migration 0004 (CHECK 완화) 도입. 기존 `15142998` zod 스키마는 rollback 가능성 위해 코드 보존. detail API 통합은 후속 commit 으로 분리.
+- **데이터셋 재교체 (2026-04-26)**: 부트스트랩 1차 실행 결과 `15142998` 은 현재 공람 진행 사업만 노출 (총 15건, 풍력 0건). 인덱싱 가치 부재 확인 후 `15142987` (환경영향평가 협의현황, 7,434건) 으로 재교체. 응답 shape 변경 (bizGubunCd/drfopTmdt/eiaAddrTxt 등 부재) 에 따라 (a) zod 스키마 신규(`dscssBsnsListItemSchema`), (b) wind-filter regex-only, (c) transform list-only + `evaluation_stage='unknown'`, (d) migration 0004 (CHECK 완화) 도입. 기존 `15142998` zod 스키마는 rollback 가능성 위해 코드 보존. ~~detail API 통합은 후속 commit 으로 분리.~~ → **2026-04-26 P1 patch 로 통합 (§12.1 참조)**.
 - **EIASS deep-link URL 보정 (2026-04-26)**: 기존 `https://www.eiass.go.kr/proj/view.do?projectId=<eiaCd>` 가 404 응답. 사용자 브라우저 직접 검증 결과 실제 동작 URL 은 `/biz/base/info/searchListNew.do?menu=biz&sKey=BIZ_CD&sVal=<eiaCd>` (BIZ_CD ≡ eiaCd). `eiassProjectUrl(ref: EiassProjectRef)` → `eiassProjectUrl(eiaCd: string)` 시그니처 단순화. `EiassProjectRef` 타입 제거. 모든 caller (markdown-export, CasePreviewPane, [caseId].astro) 호출부 수정. §10.5 신설.
+
+### 12.1 Office Hours P1 — detail API 통합 (2026-04-26)
+
+| Q | 결정 | 근거 |
+|---|------|------|
+| Q1 | **Ing detail 단독 채택**, Opinion detail 미사용 | 사용자 raw payload 검증: 둘 다 `eiaAddrTxt` 부재 → region 보강 가치 동일. Opinion 은 PII (CCM 이메일/이름) 포함 → 호출 자체 회피가 §10.4 가드에 부합. |
+| Q2 | **Full refresh, no delay, no timeout** | v0 풍력 N<500 → 호출 한도 안전. stateNm 변동이 stepChangeDt 와 비동기 → incremental 누락 위험. 코드 단순 = 결함 표면 최소화. |
+| Q3 | **Retry 1회 → list-only fallback**, 부트스트랩/cycle 동일 처리 | list PK 누락 시 `unknown` skip 유지. 분기 코드 회피로 결함 표면 ↓. |
+| Q4 | **stateNm 매핑 5단계 + 정렬 후 first + 빈 응답 → 'unknown'** | 매핑 우선순위 ① '전략' ② '본안'/'협의'/'변경협의' ③ 그 외. 정렬 키 `resReplyDt DESC → applyDt DESC → API order`. CHECK 통과. |
+| Q5 | **biz_nm regex + sigungu LUT, sigungu first → first match → 광역시 우선, 50% DoD** | 두 detail 모두 `eiaAddrTxt` 부재. LUT 1차 import 6개 (영양/강릉/의성/청송/삼척/양양) 으로 운영 10건 즉시 매칭. |
+| Q6 | **transform 호출 시그니처 확장 + test fixtures + TDD** | Phase 0 RED 우선. fixture 4종 (1차 협의/1차변경협의본안/변경협의/빈 응답). |
+| Q7 | **Vertical modular 5 file + DoD SQL + 기존 swap backup + sync 별도 트랙** | 5 file 시그니처 검토 게이트 in Design. transform.ts 확장 영향 명시. |
+| Q8 | **handover 갱신 + DoD 임계 (region 50%, detail success 80%) + Phase 5a/5b 분리** | 5a 검증 (no commit) → 5b handover commit. |
+
+추가 노트:
+- §4.4 region 매핑 알고리즘 신설. biz_nm regex + sigungu LUT 1차 import 6 entry. **KOSTAT 시·도 코드 확정은 Phase 1** (현 spec 의 sidoCode 잠정값).
+- Ing detail envelope zod 는 `response.body.items.item` union (single object | array) 처리 (data.go.kr 공통 envelope 패턴).
+- §11.1 Phase 5 분리: 5a (검증, 미커밋) + 5b (handover commit).
