@@ -1,6 +1,9 @@
 import { isOnshoreWindCandidate } from './wind-filter';
 import { parseRegion } from './region-parser';
 import { pickPayload } from './payload-whitelist';
+import { deriveRegionFromBizNm } from './sigungu-parser';
+import { mapEvaluationStage } from './evaluation-stage-mapper';
+import type { DscssIngDetailItem } from '../../../packages/eia-data/src/types/discussion';
 
 const SOURCE_DATASET_DRAFT = '15142998';
 const SOURCE_DATASET_DSCSS = '15142987';
@@ -170,21 +173,50 @@ export function transformItem(input: TransformInput): TransformedRow | null {
   };
 }
 
-// 15142987 (협의현황) list-only 변환. detail API 호출은 후속 작업으로 분리.
+// 15142987 (협의현황) list + Ing detail 통합 변환 (P1, 2026-04-26).
 // list 응답에는 bizGubunCd / drfopTmdt / eiaAddrTxt / bizSize 등이 없으므로
-// 다수 컬럼이 null. evaluation_stage='unknown' (본안/전략 미식별).
+// 다수 컬럼이 null. evaluation_stage 는 Ing detail stateNm 매핑으로 결정.
+// region 은 bizNm regex + sigungu LUT 로 보강 (eiaAddrTxt 부재).
+// detailItems 미전달 시 list-only fallback (evaluation_stage='unknown').
 export interface DscssTransformInput {
   list: Record<string, unknown> & { eiaCd: string; bizNm: string };
+  // P1: Ing detail items (sorted by indexer or unsorted, mapper 가 sort).
+  // undefined = call 실패 또는 미호출 (list-only fallback).
+  // exactOptionalPropertyTypes 호환: undefined 명시 전달 허용.
+  detailItems?: DscssIngDetailItem[] | undefined;
 }
 
 export function transformDscssItem(input: DscssTransformInput): TransformedRow | null {
-  const { list } = input;
+  const { list, detailItems } = input;
   if (!isOnshoreWindCandidate({ bizNm: list.bizNm })) return null;
   const pk = list.eiaCd;
   if (!pk) return null;
   const seqRaw = list.eiaSeq;
   const bizNm = String(list.bizNm);
-  const payload = pickPayload(list as Record<string, unknown>);
+
+  // P1: region from bizNm
+  const region = deriveRegionFromBizNm(bizNm);
+  // P1: stage from Ing detail items
+  const stage = mapEvaluationStage(detailItems);
+
+  // detail items 상위 3건 (정렬 후) 만 payload 화이트리스트 후보로
+  const detailHead = (detailItems ?? []).slice(0, 3);
+
+  // payload merge: list + detailHead 화이트리스트 + region 매칭 결과
+  const payloadSource: Record<string, unknown> = {
+    ...(list as Record<string, unknown>),
+    matched_token: region.matched_token,
+    matched_sido: region.matched_sido,
+    matched_sigungu: region.matched_sigungu
+  };
+  // detail 의 상위 1건 (mapping 근거) 만 payload 에 포함 (3건 모두 포함은 over-storage)
+  if (detailHead[0]) {
+    payloadSource.stateNm = detailHead[0].stateNm;
+    payloadSource.resReplyDt = detailHead[0].resReplyDt;
+    payloadSource.applyDt = detailHead[0].applyDt;
+  }
+  const payload = pickPayload(payloadSource);
+
   return {
     eia_cd: pk,
     eia_seq: seqRaw != null ? String(seqRaw) : null,
@@ -201,13 +233,13 @@ export function transformDscssItem(input: DscssTransformInput): TransformedRow |
     drfop_end_dt: null,
     eia_addr_txt: null,
     industry: 'onshore_wind',
-    region_sido: null,
-    region_sido_code: null,
-    region_sigungu: null,
+    region_sido: region.matched_sido,
+    region_sido_code: region.sidoCode,
+    region_sigungu: region.matched_sigungu,
     capacity_mw: parseCapacity(null, null, bizNm),
     area_ha: parseArea(null, null, bizNm),
     evaluation_year: parseYear(null, (list.stepChangeDt as string | undefined) ?? null),
-    evaluation_stage: 'unknown',
+    evaluation_stage: stage,
     source_dataset: SOURCE_DATASET_DSCSS,
     source_payload: JSON.stringify(payload)
   };

@@ -19,22 +19,32 @@ describe('mapEvaluationStage', () => {
     ).toBe('전략');
   });
 
-  it('stateNm "1차 협의" → 본안', () => {
-    expect(
-      mapEvaluationStage([{ stateNm: '1차 협의', resReplyDt: '2024-01-01', applyDt: '2024-01-01' }])
-    ).toBe('본안');
-  });
-
-  it('stateNm "변경협의" → 본안', () => {
+  it('stateNm "변경협의" → 본안 (substring)', () => {
     expect(
       mapEvaluationStage([{ stateNm: '변경협의', resReplyDt: '2024-01-01', applyDt: '2024-01-01' }])
     ).toBe('본안');
   });
 
-  it('stateNm "협의" (정확 일치) → 본안', () => {
+  it('stateNm "1차변경협의본안" → 본안 (운영 데이터 패턴)', () => {
+    expect(
+      mapEvaluationStage([
+        { stateNm: '1차변경협의본안', resReplyDt: '2024-01-01', applyDt: '2024-01-01' }
+      ])
+    ).toBe('본안');
+  });
+
+  it('stateNm "협의" (정확 일치) → 본안 (Q4 strict equality)', () => {
     expect(
       mapEvaluationStage([{ stateNm: '협의', resReplyDt: '2024-01-01', applyDt: '2024-01-01' }])
     ).toBe('본안');
+  });
+
+  it('stateNm "협의취하" → unknown (negative 의미 텍스트 오분류 방지, Q4 strict 의도)', () => {
+    expect(
+      mapEvaluationStage([
+        { stateNm: '협의취하', resReplyDt: '2024-01-01', applyDt: '2024-01-01' }
+      ])
+    ).toBe('unknown');
   });
 
   it('stateNm "소규모환경영향평가" → unknown', () => {

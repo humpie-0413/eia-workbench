@@ -243,17 +243,20 @@ describe('transformDscssItem (15142987 list-only)', () => {
     ).toBeNull();
   });
 
-  it('P1 — Ing detail merge: stateNm "1차 협의" → 본안 + region 영양 LUT 매치', () => {
+  it('P1 — Ing detail merge: stateNm "1차변경협의본안" → 본안 + region 영양 LUT 매치', () => {
+    // 운영 데이터 패턴: '1차변경협의본안' (substring '본안' hit). Q4 strict 의도 부합.
     const r = transformDscssItem({
       list: { eiaCd: 'DG2009L001', bizNm: '영양풍력발전단지 건설사업' },
-      detailItems: [{ stateNm: '1차 협의', resReplyDt: '2024-01-01', applyDt: '2024-01-01' }]
+      detailItems: [
+        { stateNm: '1차변경협의본안', resReplyDt: '2024-01-01', applyDt: '2024-01-01' }
+      ]
     }) as TransformedRow;
     expect(r.evaluation_stage).toBe('본안');
     expect(r.region_sido).toBe('경상북도');
     expect(r.region_sido_code).toBe('47');
     expect(r.region_sigungu).toBe('영양군');
     const pl = JSON.parse(r.source_payload);
-    expect(pl.stateNm).toBe('1차 협의');
+    expect(pl.stateNm).toBe('1차변경협의본안');
     expect(pl.matched_token).toBe('영양');
   });
 
