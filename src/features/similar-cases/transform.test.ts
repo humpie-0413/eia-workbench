@@ -247,9 +247,7 @@ describe('transformDscssItem (15142987 list-only)', () => {
     // 운영 데이터 패턴: '1차변경협의본안' (substring '본안' hit). Q4 strict 의도 부합.
     const r = transformDscssItem({
       list: { eiaCd: 'DG2009L001', bizNm: '영양풍력발전단지 건설사업' },
-      detailItems: [
-        { stateNm: '1차변경협의본안', resReplyDt: '2024-01-01', applyDt: '2024-01-01' }
-      ]
+      detailItems: [{ stateNm: '1차변경협의본안', resReplyDt: '2024-01-01', applyDt: '2024-01-01' }]
     }) as TransformedRow;
     expect(r.evaluation_stage).toBe('본안');
     expect(r.region_sido).toBe('경상북도');
