@@ -41,9 +41,7 @@ describe('mapEvaluationStage', () => {
 
   it('stateNm "협의취하" → unknown (negative 의미 텍스트 오분류 방지, Q4 strict 의도)', () => {
     expect(
-      mapEvaluationStage([
-        { stateNm: '협의취하', resReplyDt: '2024-01-01', applyDt: '2024-01-01' }
-      ])
+      mapEvaluationStage([{ stateNm: '협의취하', resReplyDt: '2024-01-01', applyDt: '2024-01-01' }])
     ).toBe('unknown');
   });
 
