@@ -1,4 +1,5 @@
 import type { EiaCase } from '@/lib/types/case-search';
+import { formatLocation } from '@/features/similar-cases/format-location';
 import { eiassProjectUrl } from '../../../packages/eia-data/src/deep-link';
 
 export default function CasePreviewPane({ eiaCase }: { eiaCase: EiaCase | null }) {
@@ -13,7 +14,7 @@ export default function CasePreviewPane({ eiaCase }: { eiaCase: EiaCase | null }
       <dl className="grid gap-1 text-small">
         <div>
           <dt className="inline text-text-secondary">위치: </dt>
-          <dd className="inline">{eiaCase.eia_addr_txt ?? '미상'}</dd>
+          <dd className="inline">{formatLocation(eiaCase)}</dd>
         </div>
         <div>
           <dt className="inline text-text-secondary">규모: </dt>

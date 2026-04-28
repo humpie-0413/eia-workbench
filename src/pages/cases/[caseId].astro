@@ -1,5 +1,6 @@
 ---
 import AppLayout from '@/layouts/AppLayout.astro';
+import { formatLocation } from '@/features/similar-cases/format-location';
 import { eiassProjectUrl } from '../../../packages/eia-data/src/deep-link';
 
 const { caseId } = Astro.params;
@@ -36,7 +37,7 @@ if (!row) return new Response('not found', { status: 404 });
   <dl class="mt-4 grid gap-1 text-small">
     <div>
       <dt class="inline text-text-secondary">위치:</dt>
-      <dd class="inline">{row.eia_addr_txt ?? '미상'}</dd>
+      <dd class="inline">{formatLocation(row)}</dd>
     </div>
     <div>
       <dt class="inline text-text-secondary">평가단계:</dt>
