@@ -55,4 +55,41 @@ describe('deriveRegionFromBizNm', () => {
     expect(r.matched_token).toBe('강릉');
     expect(r.sidoCode).toBe('51');
   });
+
+  // ---- P3 §3(a) sido-only fallback (step 2.7) ----
+
+  it('sido short token substring fallback — "강원풍력 발전단지 건설사업(리파워링)" → 강원도', () => {
+    // 운영 D1 ME2022C006. 광역도 short ('강원') 만 등장 + sigungu LUT 미매치
+    // → step 2.7 sido fallback. matched_sido 는 legacyLabel ('강원도') 로 sigungu-lut.json 일관.
+    const r = deriveRegionFromBizNm('강원풍력 발전단지 건설사업(리파워링)');
+    expect(r.matched_sido).toBe('강원도');
+    expect(r.matched_sigungu).toBeNull();
+    expect(r.matched_token).toBe('강원');
+    expect(r.sidoCode).toBe('51');
+  });
+
+  it('sido short token 부재 — "풍백 풍력발전단지" NULL 유지 (landmark-only, Option A scope 외)', () => {
+    // 광역시/시군구/광역도 토큰 모두 부재. landmark LUT 미구현 (별도 P3).
+    const r = deriveRegionFromBizNm('풍백 풍력발전단지 조성사업');
+    expect(r.matched_sido).toBeNull();
+    expect(r.matched_sigungu).toBeNull();
+    expect(r.matched_token).toBeNull();
+  });
+
+  it('priority — sigungu LUT substring 우선, sido short fallback 무관 ("강원도 강릉 풍력")', () => {
+    // step 2.5 sigungu substring ('강릉') 가 step 2.7 sido short ('강원') 보다 우선.
+    const r = deriveRegionFromBizNm('강원도 강릉 풍력');
+    expect(r.matched_sido).toBe('강원도');
+    expect(r.matched_sigungu).toBe('강릉시');
+    expect(r.matched_token).toBe('강릉');
+    expect(r.sidoCode).toBe('51');
+  });
+
+  it('priority — METRO 우선, sido short fallback 무관 ("광주 풍력")', () => {
+    // step 1 METRO 가 step 2.7 (SIDO_LUT '광주' 도 존재) 보다 먼저 매치.
+    const r = deriveRegionFromBizNm('광주 풍력 시범');
+    expect(r.matched_sido).toBe('광주');
+    expect(r.matched_sigungu).toBeNull();
+    expect(r.matched_token).toBe('광주');
+  });
 });
