@@ -259,6 +259,14 @@ function deriveRegion(bizNm: string, lut: SigunguLut): RegionResult {
       return { sido: lut[stem].sido, sidoCode: lut[stem].sidoCode, sigungu: lut[stem].sigungu, matched_token: stem };
     }
   }
+  // 2.7. (NEW, P3 §3(a)) 광역도 short token substring fallback — sigungu LUT 미매치 + landmark 부재.
+  //      운영 D1 (2026-04-28) 4건 (ME2022C006 '강원풍력', ... ) 의 region_sido NULL 해소.
+  //      legacyLabel ('강원도') 사용 — sigungu-lut.json 의 sido 컨벤션 일관 (canonical '강원특별자치도' 회피).
+  for (const entry of SIDO_LUT) {
+    if (bizNm.includes(entry.short)) {
+      return { sido: entry.legacyLabel, sidoCode: entry.code, sigungu: null, matched_token: entry.short };
+    }
+  }
   // 3. 매칭 실패
   return { sido: null, sidoCode: null, sigungu: null, matched_token: null };
 }
@@ -267,6 +275,7 @@ function deriveRegion(bizNm: string, lut: SigunguLut): RegionResult {
 - 광역시 토큰 존재 시 시·군·구 LUT 보다 우선 (광역시 안의 자치구 분리는 v1).
 - 광역시 토큰 부재 시 시·군·구 LUT 첫 매치. LUT 미등록 토큰은 무시.
 - step 2 (suffix 토큰 매치) 실패 시 step 2.5 어근 substring 매치로 fallback. `Object.keys(lut)` 삽입 순서 = LUT JSON 정의 순서 (영양 → 강릉 → 의성 → 청송 → 삼척 → 양양).
+- step 2.5 도 실패하고 광역도 short token (`'강원'`/`'경기'`/`'경북'` 등) 만 등장하는 bizNm 인 경우 step 2.7 sido fallback 으로 시·도만 채움 (sigungu=null). landmark token (예: `'풍백'`) 매칭은 별도 LUT (v1).
 
 #### 4.4.5 source_payload 기록
 
@@ -285,6 +294,20 @@ step 2.5 의 `Object.keys(lut)` 순회는 LUT JSON 삽입 순서에 의존한다
 - LUT 추가 전 충돌 검증 단위 테스트 추가 — 각 새 어근이 기존 어근의 substring 인지 / 기존 어근에 새 어근이 포함되는지 검사.
 - 충돌 발견 시: ① 더 긴 어근 우선 정렬 (`'영양읍'` vs `'영양'` → 긴 것 먼저) ② 또는 LUT 데이터에 명시적 우선순위 필드 추가.
 - v1 LUT 임포트 PR 의 DoD 에 본 검증 절차 1줄 명시 필수.
+
+#### 4.4.8 sido label drift 정책 (P3 §3(a))
+
+`sigungu-lut.json` 의 `sido` 필드 (`"강원도"`, `"전라북도"`, `"제주도"`) 와 `sido-lut.ts` 의 canonical `label` (`'강원특별자치도'`, `'전북특별자치도'`, `'제주특별자치도'`) 사이에 **광역도 3건** label drift 가 존재한다 (2023~2024 행정 명칭 전환).
+
+| short | legacy (sigungu-lut.json, D1 region_sido) | canonical (sido-lut.ts label) | 전환 시점 |
+| ----- | ----------------------------------------- | ----------------------------- | --------- |
+| 강원  | 강원도                                    | 강원특별자치도                | 2023-06   |
+| 전북  | 전라북도                                  | 전북특별자치도                | 2024-01   |
+| 제주  | 제주도                                    | 제주특별자치도                | 2006-07   |
+
+step 2.7 sido fallback 의 `matched_sido` 는 **legacyLabel** (sido-lut.ts 의 별도 컬럼) 을 반환하여 sigungu-lut.json + 운영 D1 적재값 (`region_sido`) 컨벤션과 일관 유지. 광역시 8개 + 경기/충북/충남/전남/경북/경남 6개는 legacy = canonical 동일 (drift 없음).
+
+v1 정책: D1 `region_sido` 값을 일괄 canonical 로 마이그레이션 + UI/필터 호환 레이어 추가. 본 P3 fix 는 drift 회피로 v0 일관성만 우선 보장.
 
 ## 5. 화면 구조
 

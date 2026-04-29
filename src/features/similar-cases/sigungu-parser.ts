@@ -1,6 +1,6 @@
 // src/features/similar-cases/sigungu-parser.ts
 import lut from '../../../data/region/sigungu-lut.json';
-import { sidoCode } from './sido-lut';
+import { SIDO_LUT, sidoCode } from './sido-lut';
 
 const METRO = ['서울', '부산', '대구', '인천', '광주', '대전', '울산', '세종'] as const;
 
@@ -58,6 +58,20 @@ export function deriveRegionFromBizNm(bizNm: string): RegionResult {
         sidoCode: entry.sidoCode,
         matched_sigungu: entry.sigungu,
         matched_token: stem // 어근 그대로 (suffix 없음)
+      };
+    }
+  }
+  // 2.7. (P3 §3(a)) sido-only fallback — 광역도 short ('강원'/'경기'/...) 단독 등장 시.
+  //      sigungu LUT 미매치 + landmark 부재인 bizNm 에서 sido facet 매칭 가능하게.
+  //      legacyLabel 사용 — sigungu-lut.json 의 sido 컨벤션 일관 ('강원도' vs canonical '강원특별자치도').
+  //      METRO short 는 step 1 에서 이미 처리됨 (도달 시점에 미매치 보장).
+  for (const entry of SIDO_LUT) {
+    if (bizNm.includes(entry.short)) {
+      return {
+        matched_sido: entry.legacyLabel,
+        sidoCode: entry.code,
+        matched_sigungu: null,
+        matched_token: entry.short
       };
     }
   }

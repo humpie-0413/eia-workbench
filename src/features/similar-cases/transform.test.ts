@@ -205,7 +205,9 @@ describe('transformDscssItem (15142987 list-only)', () => {
     expect(r.approv_organ_nm).toBe('환경부 원주지방환경청');
     // list-only: detail-derived fields all null
     expect(r.eia_addr_txt).toBeNull();
-    expect(r.region_sido).toBeNull();
+    // P3 §3(a): bizNm '강원평창풍력' → step 2.7 sido fallback ('강원' short → 강원도, sigungu null).
+    expect(r.region_sido).toBe('강원도');
+    expect(r.region_sido_code).toBe('51');
     expect(r.region_sigungu).toBeNull();
     expect(r.drfop_tmdt).toBeNull();
     expect(r.biz_size).toBeNull();
