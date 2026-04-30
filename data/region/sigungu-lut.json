@@ -1,8 +1,21 @@
 {
   "영양": { "sido": "경상북도", "sidoCode": "47", "sigungu": "영양군" },
-  "강릉": { "sido": "강원도",   "sidoCode": "51", "sigungu": "강릉시" },
+  "강릉": { "sido": "강원도", "sidoCode": "51", "sigungu": "강릉시" },
   "의성": { "sido": "경상북도", "sidoCode": "47", "sigungu": "의성군" },
   "청송": { "sido": "경상북도", "sidoCode": "47", "sigungu": "청송군" },
-  "삼척": { "sido": "강원도",   "sidoCode": "51", "sigungu": "삼척시" },
-  "양양": { "sido": "강원도",   "sidoCode": "51", "sigungu": "양양군" }
+  "삼척": { "sido": "강원도", "sidoCode": "51", "sigungu": "삼척시" },
+  "양양": { "sido": "강원도", "sidoCode": "51", "sigungu": "양양군" },
+  "태백": { "sido": "강원도", "sidoCode": "51", "sigungu": "태백시" },
+  "평창": { "sido": "강원도", "sidoCode": "51", "sigungu": "평창군" },
+  "정선": { "sido": "강원도", "sidoCode": "51", "sigungu": "정선군" },
+  "영월": { "sido": "강원도", "sidoCode": "51", "sigungu": "영월군" },
+  "영덕": { "sido": "경상북도", "sidoCode": "47", "sigungu": "영덕군" },
+  "포항": { "sido": "경상북도", "sidoCode": "47", "sigungu": "포항시" },
+  "울진": { "sido": "경상북도", "sidoCode": "47", "sigungu": "울진군" },
+  "영광": { "sido": "전라남도", "sidoCode": "46", "sigungu": "영광군" },
+  "완도": { "sido": "전라남도", "sidoCode": "46", "sigungu": "완도군" },
+  "신안": { "sido": "전라남도", "sidoCode": "46", "sigungu": "신안군" },
+  "진도": { "sido": "전라남도", "sidoCode": "46", "sigungu": "진도군" },
+  "서귀포": { "sido": "제주도", "sidoCode": "50", "sigungu": "서귀포시" },
+  "제주": { "sido": "제주도", "sidoCode": "50", "sigungu": "제주시" }
 }

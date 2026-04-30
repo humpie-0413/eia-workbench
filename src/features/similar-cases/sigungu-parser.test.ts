@@ -92,4 +92,126 @@ describe('deriveRegionFromBizNm', () => {
     expect(r.matched_sigungu).toBeNull();
     expect(r.matched_token).toBe('광주');
   });
+
+  // ---- LUT 19 entry 확장 (강원 4 + 경북 3 + 전남 4 + 제주 2) ----
+  // 신규 13 entry 의 step 2.5 어근 substring fallback 검증. 미래 신규 풍력 사업
+  // 인덱싱 시 region 매칭률 향상 (60% → 추정 90%).
+
+  it('태백 substring — "태백 매봉산풍력단지"', () => {
+    const r = deriveRegionFromBizNm('태백 매봉산풍력단지');
+    expect(r.matched_sido).toBe('강원도');
+    expect(r.matched_sigungu).toBe('태백시');
+    expect(r.matched_token).toBe('태백');
+    expect(r.sidoCode).toBe('51');
+  });
+
+  it('평창 substring — "평창 대관령풍력"', () => {
+    const r = deriveRegionFromBizNm('평창 대관령풍력');
+    expect(r.matched_sido).toBe('강원도');
+    expect(r.matched_sigungu).toBe('평창군');
+    expect(r.matched_token).toBe('평창');
+    expect(r.sidoCode).toBe('51');
+  });
+
+  it('정선 substring — "정선 OO풍력단지"', () => {
+    const r = deriveRegionFromBizNm('정선 OO풍력단지');
+    expect(r.matched_sido).toBe('강원도');
+    expect(r.matched_sigungu).toBe('정선군');
+    expect(r.matched_token).toBe('정선');
+    expect(r.sidoCode).toBe('51');
+  });
+
+  it('영월 substring — "영월풍력단지"', () => {
+    const r = deriveRegionFromBizNm('영월풍력단지');
+    expect(r.matched_sido).toBe('강원도');
+    expect(r.matched_sigungu).toBe('영월군');
+    expect(r.matched_token).toBe('영월');
+    expect(r.sidoCode).toBe('51');
+  });
+
+  it('영덕 substring — "영덕 풍력발전단지"', () => {
+    const r = deriveRegionFromBizNm('영덕 풍력발전단지');
+    expect(r.matched_sido).toBe('경상북도');
+    expect(r.matched_sigungu).toBe('영덕군');
+    expect(r.matched_token).toBe('영덕');
+    expect(r.sidoCode).toBe('47');
+  });
+
+  it('포항 substring — "포항 OO풍력"', () => {
+    const r = deriveRegionFromBizNm('포항 OO풍력');
+    expect(r.matched_sido).toBe('경상북도');
+    expect(r.matched_sigungu).toBe('포항시');
+    expect(r.matched_token).toBe('포항');
+    expect(r.sidoCode).toBe('47');
+  });
+
+  it('울진 substring — "울진풍력단지"', () => {
+    const r = deriveRegionFromBizNm('울진풍력단지');
+    expect(r.matched_sido).toBe('경상북도');
+    expect(r.matched_sigungu).toBe('울진군');
+    expect(r.matched_token).toBe('울진');
+    expect(r.sidoCode).toBe('47');
+  });
+
+  it('영광 substring — "영광 백수풍력"', () => {
+    const r = deriveRegionFromBizNm('영광 백수풍력');
+    expect(r.matched_sido).toBe('전라남도');
+    expect(r.matched_sigungu).toBe('영광군');
+    expect(r.matched_token).toBe('영광');
+    expect(r.sidoCode).toBe('46');
+  });
+
+  it('완도 substring — "완도 OO풍력"', () => {
+    const r = deriveRegionFromBizNm('완도 OO풍력');
+    expect(r.matched_sido).toBe('전라남도');
+    expect(r.matched_sigungu).toBe('완도군');
+    expect(r.matched_token).toBe('완도');
+    expect(r.sidoCode).toBe('46');
+  });
+
+  it('신안 substring — "신안 자은풍력"', () => {
+    const r = deriveRegionFromBizNm('신안 자은풍력');
+    expect(r.matched_sido).toBe('전라남도');
+    expect(r.matched_sigungu).toBe('신안군');
+    expect(r.matched_token).toBe('신안');
+    expect(r.sidoCode).toBe('46');
+  });
+
+  it('진도 substring — "진도 OO풍력"', () => {
+    const r = deriveRegionFromBizNm('진도 OO풍력');
+    expect(r.matched_sido).toBe('전라남도');
+    expect(r.matched_sigungu).toBe('진도군');
+    expect(r.matched_token).toBe('진도');
+    expect(r.sidoCode).toBe('46');
+  });
+
+  it('서귀포 substring — "서귀포 OO풍력"', () => {
+    const r = deriveRegionFromBizNm('서귀포 OO풍력');
+    expect(r.matched_sido).toBe('제주도');
+    expect(r.matched_sigungu).toBe('서귀포시');
+    expect(r.matched_token).toBe('서귀포');
+    expect(r.sidoCode).toBe('50');
+  });
+
+  it('제주 substring — "제주 OO풍력"', () => {
+    const r = deriveRegionFromBizNm('제주 OO풍력');
+    expect(r.matched_sido).toBe('제주도');
+    expect(r.matched_sigungu).toBe('제주시');
+    expect(r.matched_token).toBe('제주');
+    expect(r.sidoCode).toBe('50');
+  });
+
+  // ---- 보강 1: 서귀포/제주 step 2.5 우선순위 ----
+
+  it('priority — 서귀포 stem 이 제주 stem 보다 먼저 매치 ("제주특별자치도 서귀포 OO풍력")', () => {
+    // bizNm 에 "제주" + "서귀포" 둘 다 substring 등장. step 2 SIGUNGU_TOKEN 미매치
+    // ("특별자치도" 의 도 suffix 제외, "서귀포" 단독은 시 suffix 없음).
+    // → step 2.5 substring 매치 시 sigungu-lut.json 의 keys 순서 (서귀포 → 제주) 가
+    // priority 보장. 서귀포 가 더 specific 한 매치이므로 먼저 와야 함.
+    const r = deriveRegionFromBizNm('제주특별자치도 서귀포 OO풍력');
+    expect(r.matched_sido).toBe('제주도');
+    expect(r.matched_sigungu).toBe('서귀포시');
+    expect(r.matched_token).toBe('서귀포');
+    expect(r.sidoCode).toBe('50');
+  });
 });
