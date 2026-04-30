@@ -187,7 +187,7 @@ describe('transformDscssItem (15142987 list-only)', () => {
       list: {
         eiaCd: 'YS2025C001',
         eiaSeq: 45329,
-        bizNm: '강원평창풍력 30MW',
+        bizNm: '강원풍력 30MW',
         ccilOrganNm: '환경부 원주지방환경청',
         stepChangeDt: '2025.06.18'
       }
@@ -205,7 +205,8 @@ describe('transformDscssItem (15142987 list-only)', () => {
     expect(r.approv_organ_nm).toBe('환경부 원주지방환경청');
     // list-only: detail-derived fields all null
     expect(r.eia_addr_txt).toBeNull();
-    // P3 §3(a): bizNm '강원평창풍력' → step 2.7 sido fallback ('강원' short → 강원도, sigungu null).
+    // P3 §3(a): bizNm '강원풍력' → step 2.7 sido fallback ('강원' short → 강원도, sigungu null).
+    // (운영 D1 ME2022C006 패턴. LUT 19 entry 확장 후에도 sigungu LUT 미매치 유지.)
     expect(r.region_sido).toBe('강원도');
     expect(r.region_sido_code).toBe('51');
     expect(r.region_sigungu).toBeNull();
