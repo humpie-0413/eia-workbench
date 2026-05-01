@@ -31,8 +31,7 @@ if (!row) return new Response('not found', { status: 404 });
   <a href="/cases" class="text-small text-primary">← 검색 결과로</a>
   <h1 class="mt-2 text-h1">{row.biz_nm}</h1>
   <p class="text-small text-text-secondary">
-    {row.region_sido}
-    {row.region_sigungu} · {row.capacity_mw ?? '미상'} MW · {row.evaluation_year ?? '미상'}
+    {formatLocation(row)} · {row.capacity_mw ?? '미상'} MW · {row.evaluation_year ?? '미상'}
   </p>
   <dl class="mt-4 grid gap-1 text-small">
     <div>
